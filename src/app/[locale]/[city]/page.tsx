@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowRight, MapPin } from 'lucide-react'
+import { ArrowRight, Compass, MapPin } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { GuideCard } from '@/components/guide-card'
 import { LegalPage } from '@/components/legal-page'
-import { PlaceCard } from '@/components/place-card'
+import { DiscoveryRail } from '@/components/discovery-rail'
 import { SearchExperience } from '@/components/search-experience'
 import { SafeImage } from '@/components/safe-image'
 import { CityNearby } from '@/components/city-nearby'
@@ -21,6 +21,8 @@ export const dynamicParams = false
 const topPages = ['guides', 'search', 'about', 'contact', 'privacy', 'cookies', 'legal', 'terms'] as const
 type TopPage = (typeof topPages)[number]
 function topPageForSlug(slug: string, locale: Locale): TopPage | null { return topPages.find((key) => segments[key][locale] === slug) ?? null }
+const normalizedLabel = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('fr')
+const belongsTo = (collections: string[], expected: string) => collections.some((collection) => normalizedLabel(collection) === normalizedLabel(expected))
 export function generateStaticParams() { return locales.flatMap((locale) => [...cityRecords.map((city) => ({ locale, city: city.slug[locale] })), ...topPages.map((key) => ({ locale, city: segments[key][locale] }))]) }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -60,13 +62,19 @@ export default async function CityPage({ params }: Props) {
   const places = await firebasePlaceRepository.listPlaces(value, city.id)
   const guides = mockRepository.listGuides(value, city.id)
   const categories = [...new Map(places.map((place) => [place.category.id, place.category])).values()]
-  const mustSees = places.filter((place) => place.collections.includes('Incontournables'))
-  const editorial = places.filter((place) => !place.collections.includes('Incontournables')).slice(0, 3)
+  const mustSees = places.filter((place) => belongsTo(place.collections, 'Incontournables')).slice(0, 8)
+  const family = places.filter((place) => belongsTo(place.collections, 'En famille')).slice(0, 8)
+  const goingOutCategoryIds = new Set(['bars', 'restaurants', 'local-life', 'leisure'])
+  const goingOut = places.filter((place) => goingOutCategoryIds.has(place.category.id)).slice(0, 8)
+  const allPlacesAction = { href: route.places(value, city.slug), label: t.common.viewAll }
+  const coordinatesLabel = `${Math.abs(city.coordinates.latitude).toFixed(4)}° ${city.coordinates.latitude >= 0 ? 'N' : 'S'} · ${Math.abs(city.coordinates.longitude).toFixed(4)}° ${city.coordinates.longitude >= 0 ? 'E' : 'W'}`
   return <main>
-    <section className="city-hero"><SafeImage src={city.image} alt="" fill preload sizes="100vw" fallbackLabel={t.places.photoUnavailable} /><div className="container city-hero-content"><span className="mono">{city.country} · {places.length} {t.city.places}</span><h1>{city.name}</h1><p>{city.description}</p><div className="page-hero-actions"><Link className="button button-primary" href={route.map(value, city.slug)}><MapPin size={19}/>{t.city.exploreMap}</Link><Link className="button button-light" href={route.places(value, city.slug)}>{t.places.title}<ArrowRight size={18}/></Link></div></div></section>
-    <section className="section"><div className="container"><div className="section-heading"><h2>{t.city.popular}</h2><Link className="button button-light button-small" href={route.places(value, city.slug)}>{t.common.viewAll}<ArrowRight size={17}/></Link></div><div className="place-grid">{mustSees.map((place) => <PlaceCard key={place.id} place={place} locale={value} showCity={false} />)}</div></div></section>
-    {editorial.length > 0 && <section className="section city-editorial"><div className="container"><div className="section-heading"><div><span className="mono section-kicker">OXPLORIA</span><h2>{t.city.editorial}</h2><p>{t.city.editorialBody}</p></div><Link className="button button-light button-small" href={route.places(value, city.slug)}>{t.common.viewAll}<ArrowRight size={17}/></Link></div><div className="place-grid">{editorial.map((place) => <PlaceCard key={place.id} place={place} locale={value} showCity={false} />)}</div></div></section>}
+    <section className="city-hero"><SafeImage src={city.image} alt="" fill preload sizes="100vw" fallbackLabel={t.places.photoUnavailable} /><div className="container city-hero-content"><span className="mono">{city.country} · {places.length} {t.city.places}</span><h1>{city.name}</h1><p>{city.description}</p><nav className="city-mode-switch" aria-label={t.city.viewNavigation}><Link href={route.city(value, city.slug)} aria-current="page"><Compass size={18} aria-hidden="true" />{t.nav.explore}</Link><Link href={route.map(value, city.slug)}><MapPin size={18} aria-hidden="true" />{t.nav.map}</Link></nav><div className="page-hero-actions"><Link className="button button-primary" href="#discover"><Compass size={19} aria-hidden="true" />{t.city.startExploring}</Link><Link className="button button-light" href={route.places(value, city.slug)}>{t.places.title}<ArrowRight size={18} aria-hidden="true" /></Link></div></div></section>
+    <section className="explorer-intro" id="discover"><div className="container"><h2>{t.city.exploreTitle.replace('{city}', city.name)}</h2><p>{t.city.exploreBody}</p><div className="explorer-coordinate"><span className="explorer-route-line" aria-hidden="true"><span className="route-dot" /></span><span className="mono">{coordinatesLabel}</span><Link href={route.map(value, city.slug)}>{t.city.exploreMap}<ArrowRight size={16} aria-hidden="true" /></Link></div></div></section>
     <CityNearby locale={value} city={city} places={places}/>
+    <DiscoveryRail locale={value} title={t.city.popular} body={t.city.popularBody} items={mustSees.map((place) => ({ place }))} action={allPlacesAction} />
+    <DiscoveryRail locale={value} title={t.city.family} body={t.city.familyBody} items={family.map((place) => ({ place }))} action={allPlacesAction} />
+    <DiscoveryRail locale={value} title={t.city.goingOut} body={t.city.goingOutBody} items={goingOut.map((place) => ({ place }))} action={allPlacesAction} tone="dark" />
     <section className="section-tight"><div className="container"><div className="section-heading"><h2>{t.city.categories}</h2></div><div className="category-strip">{categories.map((category) => <Link key={category.id} className="chip" href={route.category(value, city.slug, category.slug[value])}>{category.name[value]}</Link>)}</div></div></section>
     {guides.length > 0 && <section className="section"><div className="container"><div className="section-heading"><h2>{t.city.guides}</h2><Link className="button button-light button-small" href={route.guides(value, city.slug)}>{t.common.viewAll}<ArrowRight size={17}/></Link></div><div className="guide-grid">{guides.map((guide) => <GuideCard key={guide.id} guide={guide} city={city} locale={value} />)}</div></div></section>}
   </main>

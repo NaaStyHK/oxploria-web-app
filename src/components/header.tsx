@@ -23,13 +23,17 @@ export function Header({ locale }: { locale: Locale }) {
   const languageRef = useRef<HTMLDivElement>(null)
   const languageButtonRef = useRef<HTMLButtonElement>(null)
   useMetadataAlternateLinks(languageRef, pathname, languageOpen)
-  const barcelona = mockRepository.listCities(locale)[0]
+  const cities = mockRepository.listCities(locale)
+  const barcelona = cities[0]
+  const currentCity = cities.find((city) => pathname === route.city(locale, city.slug) || pathname.startsWith(`${route.city(locale, city.slug)}/`)) ?? barcelona
   const links = [
-    { href: route.map(locale, barcelona.slug), label: t.nav.explore },
+    { href: route.city(locale, currentCity.slug), label: t.nav.explore },
     { href: route.guides(locale), label: t.nav.guides },
     { href: `${route.home(locale)}#cities`, label: t.nav.cities },
     { href: route.page(locale, 'about'), label: t.nav.about },
   ]
+  const mapHref = route.map(locale, currentCity.slug)
+  const mobileLinks = [links[0], { href: mapHref, label: t.nav.map }, ...links.slice(1), { href: route.search(locale), label: t.search.title }]
 
   useEffect(() => {
     const close = (event: MouseEvent) => {
@@ -54,10 +58,10 @@ export function Header({ locale }: { locale: Locale }) {
       <div className="container header-inner">
         <Brand locale={locale} />
         <nav className="desktop-nav" aria-label={t.nav.menu}>
-          {links.map((link) => <Link key={link.href} className="nav-link" href={link.href}>{link.label}</Link>)}
+          {links.map((link) => <Link key={link.href} className="nav-link" href={link.href} aria-current={pathname === link.href ? 'page' : undefined}>{link.label}</Link>)}
         </nav>
         <div className="header-actions">
-          <Link className="button button-primary button-small" href={route.map(locale, barcelona.slug)}>{t.nav.map}</Link>
+          <Link className="button button-primary button-small" href={mapHref} aria-current={pathname === mapHref ? 'page' : undefined}>{t.nav.map}</Link>
           <div className="language-switcher" ref={languageRef}>
             <button ref={languageButtonRef} className="language-button" type="button" aria-expanded={languageOpen} aria-controls="language-options" aria-label={`${t.footer.language}: ${t.localeName}`} onClick={() => setLanguageOpen((value) => !value)}>{locale.toUpperCase()} <ChevronDown size={13} aria-hidden="true" /></button>
             {languageOpen && <ul className="language-menu" id="language-options">
@@ -67,7 +71,7 @@ export function Header({ locale }: { locale: Locale }) {
           <button className="menu-button" type="button" aria-expanded={menuOpen} aria-controls="mobile-navigation" aria-label={menuOpen ? t.nav.close : t.nav.menu} onClick={() => setMenuOpen((value) => !value)}>{menuOpen ? <X size={21} aria-hidden="true" /> : <Menu size={21} aria-hidden="true" />}</button>
         </div>
       </div>
-      {menuOpen && <div className="mobile-menu" id="mobile-navigation"><nav aria-label={t.nav.menu}>{links.map((link) => <Link key={link.href} className="nav-link" href={link.href} onClick={() => setMenuOpen(false)}>{link.label}</Link>)}<Link className="nav-link" href={route.search(locale)} onClick={() => setMenuOpen(false)}>{t.search.title}</Link></nav></div>}
+      {menuOpen && <div className="mobile-menu" id="mobile-navigation"><nav aria-label={t.nav.menu}>{mobileLinks.map((link) => <Link key={link.href} className="nav-link" href={link.href} aria-current={pathname === link.href ? 'page' : undefined} onClick={() => setMenuOpen(false)}>{link.label}</Link>)}</nav></div>}
     </header>
   )
 }
