@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Compass, MapPin } from 'lucide-react'
 import { notFound } from 'next/navigation'
@@ -15,14 +16,13 @@ import { getDictionary } from '@/lib/i18n/dictionaries'
 import { isLocale, locales, type Locale } from '@/lib/i18n/config'
 import { route, segments } from '@/lib/routes'
 import { localizedMetadata } from '@/lib/seo'
+import { hasEditorialCollection, isGoingOutPlace, markerIconPath, markerTypeForCategoryId } from '@/lib/place-taxonomy'
 
 type Props = { params: Promise<{ locale: string; city: string }> }
 export const dynamicParams = false
 const topPages = ['guides', 'search', 'about', 'contact', 'privacy', 'cookies', 'legal', 'terms'] as const
 type TopPage = (typeof topPages)[number]
 function topPageForSlug(slug: string, locale: Locale): TopPage | null { return topPages.find((key) => segments[key][locale] === slug) ?? null }
-const normalizedLabel = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('fr')
-const belongsTo = (collections: string[], expected: string) => collections.some((collection) => normalizedLabel(collection) === normalizedLabel(expected))
 export function generateStaticParams() { return locales.flatMap((locale) => [...cityRecords.map((city) => ({ locale, city: city.slug[locale] })), ...topPages.map((key) => ({ locale, city: segments[key][locale] }))]) }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -62,10 +62,9 @@ export default async function CityPage({ params }: Props) {
   const places = await firebasePlaceRepository.listPlaces(value, city.id)
   const guides = mockRepository.listGuides(value, city.id)
   const categories = [...new Map(places.map((place) => [place.category.id, place.category])).values()]
-  const mustSees = places.filter((place) => belongsTo(place.collections, 'Incontournables')).slice(0, 8)
-  const family = places.filter((place) => belongsTo(place.collections, 'En famille')).slice(0, 8)
-  const goingOutCategoryIds = new Set(['bars', 'restaurants', 'local-life', 'leisure'])
-  const goingOut = places.filter((place) => goingOutCategoryIds.has(place.category.id)).slice(0, 8)
+  const mustSees = places.filter((place) => hasEditorialCollection(place, 'Incontournables')).slice(0, 8)
+  const family = places.filter((place) => hasEditorialCollection(place, 'En famille')).slice(0, 8)
+  const goingOut = places.filter(isGoingOutPlace).slice(0, 8)
   const allPlacesAction = { href: route.places(value, city.slug), label: t.common.viewAll }
   const coordinatesLabel = `${Math.abs(city.coordinates.latitude).toFixed(4)}° ${city.coordinates.latitude >= 0 ? 'N' : 'S'} · ${Math.abs(city.coordinates.longitude).toFixed(4)}° ${city.coordinates.longitude >= 0 ? 'E' : 'W'}`
   return <main>
@@ -75,7 +74,7 @@ export default async function CityPage({ params }: Props) {
     <DiscoveryRail locale={value} title={t.city.popular} body={t.city.popularBody} items={mustSees.map((place) => ({ place }))} action={allPlacesAction} />
     <DiscoveryRail locale={value} title={t.city.family} body={t.city.familyBody} items={family.map((place) => ({ place }))} action={allPlacesAction} />
     <DiscoveryRail locale={value} title={t.city.goingOut} body={t.city.goingOutBody} items={goingOut.map((place) => ({ place }))} action={allPlacesAction} tone="dark" />
-    <section className="section-tight"><div className="container"><div className="section-heading"><h2>{t.city.categories}</h2></div><div className="category-strip">{categories.map((category) => <Link key={category.id} className="chip" href={route.category(value, city.slug, category.slug[value])}>{category.name[value]}</Link>)}</div></div></section>
+    <section className="section-tight"><div className="container"><div className="section-heading"><h2>{t.city.categories}</h2></div><div className="category-strip">{categories.map((category) => { const icon = markerIconPath(markerTypeForCategoryId(category.id)); return <Link key={category.id} className="chip" href={route.category(value, city.slug, category.slug[value])}><span className="marker-type-icon" style={{ '--marker-icon': `url(${icon})` } as CSSProperties} aria-hidden="true" />{category.name[value]}</Link> })}</div></div></section>
     {guides.length > 0 && <section className="section"><div className="container"><div className="section-heading"><h2>{t.city.guides}</h2><Link className="button button-light button-small" href={route.guides(value, city.slug)}>{t.common.viewAll}<ArrowRight size={17}/></Link></div><div className="guide-grid">{guides.map((guide) => <GuideCard key={guide.id} guide={guide} city={city} locale={value} />)}</div></div></section>}
   </main>
 }

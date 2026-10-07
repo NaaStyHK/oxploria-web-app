@@ -5,6 +5,7 @@ import { AttributionControl, GeoJSONSource, Map as MapLibreMap, NavigationContro
 import type { FeatureCollection, Point } from 'geojson'
 import type { Coordinates, Place } from '@/lib/types'
 import type { Locale } from '@/lib/i18n/config'
+import { markerIconPath, markerTypes, resolvePlaceMarkerType, type PlaceMarkerType } from '@/lib/place-taxonomy'
 
 const controlLabels: Record<Locale, Record<string, string>> = {
   fr: { 'AttributionControl.ToggleAttribution': 'Afficher ou masquer les attributions', 'NavigationControl.ZoomIn': 'Zoomer', 'NavigationControl.ZoomOut': 'Dézoomer', 'Map.Title': 'Carte' },
@@ -22,8 +23,8 @@ const mapStyle: StyleSpecification = {
 
 type MappablePlace = Place & { coordinates: Coordinates }
 
-function collection(places: MappablePlace[]): FeatureCollection<Point, { id: string; name: string }> {
-  return { type: 'FeatureCollection', features: places.map((place) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [place.coordinates.longitude, place.coordinates.latitude] }, properties: { id: place.id, name: place.name } })) }
+function collection(places: MappablePlace[]): FeatureCollection<Point, { id: string; name: string; markerType: PlaceMarkerType }> {
+  return { type: 'FeatureCollection', features: places.map((place) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [place.coordinates.longitude, place.coordinates.latitude] }, properties: { id: place.id, name: place.name, markerType: resolvePlaceMarkerType(place) } })) }
 }
 
 function userPositionData(position: Coordinates): FeatureCollection<Point> {
@@ -80,40 +81,46 @@ export default function MapCanvas({ locale, places, center, zoom, selectedId, us
       map.addControl(new NavigationControl({ showCompass: false }), 'top-right')
       map.addControl(new AttributionControl({ compact: true }), 'bottom-right')
       map.on('load', () => {
-        map.addSource('places', { type: 'geojson', data: collection(placesRef.current), cluster: true, clusterMaxZoom: 14, clusterRadius: 52 })
-        map.addLayer({ id: 'clusters', type: 'circle', source: 'places', filter: ['has', 'point_count'], paint: { 'circle-color': '#151515', 'circle-radius': ['step', ['get', 'point_count'], 20, 50, 25, 150, 31], 'circle-stroke-width': 3, 'circle-stroke-color': '#FFD400' } })
-        map.addLayer({ id: 'cluster-count', type: 'symbol', source: 'places', filter: ['has', 'point_count'], layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Open Sans Semibold'], 'text-size': 12 }, paint: { 'text-color': '#FFFFFF' } })
-        map.addLayer({ id: 'place-markers', type: 'circle', source: 'places', filter: ['!', ['has', 'point_count']], paint: { 'circle-color': '#FFD400', 'circle-radius': ['case', ['==', ['get', 'id'], selectedIdRef.current ?? ''], 12, 8], 'circle-stroke-width': ['case', ['==', ['get', 'id'], selectedIdRef.current ?? ''], 4, 3], 'circle-stroke-color': '#151515' } })
-        map.addLayer({ id: 'place-centres', type: 'circle', source: 'places', filter: ['!', ['has', 'point_count']], paint: { 'circle-color': '#FFFFFF', 'circle-radius': 2.2 } })
-        // A separate 48 px hit area keeps the visual marker compact while making
-        // the whole pin reliably clickable, including its white centre on touch.
-        map.addLayer({ id: 'place-hit-areas', type: 'circle', source: 'places', filter: ['!', ['has', 'point_count']], paint: { 'circle-color': '#151515', 'circle-radius': 24, 'circle-opacity': 0.01 } })
-        map.on('click', async (event: MapLayerMouseEvent) => {
-          const { x, y } = event.point
-          const nearbyPlaces = map.queryRenderedFeatures([[x - 24, y - 24], [x + 24, y + 24]], { layers: ['place-markers'] })
-          const id = nearbyPlaces[0]?.properties?.id
-          if (typeof id === 'string') { onSelectRef.current(id); return }
+        void (async () => {
+          await Promise.all(markerTypes.map(async (type) => {
+            const image = await map.loadImage(markerIconPath(type))
+            if (!map.hasImage(`marker-${type}`)) map.addImage(`marker-${type}`, image.data, { pixelRatio: 3 })
+          }))
+          if (mapRef.current !== map) return
+          map.addSource('places', { type: 'geojson', data: collection(placesRef.current), cluster: true, clusterMaxZoom: 14, clusterRadius: 52 })
+          map.addLayer({ id: 'clusters', type: 'circle', source: 'places', filter: ['has', 'point_count'], paint: { 'circle-color': '#151515', 'circle-radius': ['step', ['get', 'point_count'], 20, 50, 25, 150, 31], 'circle-stroke-width': 3, 'circle-stroke-color': '#FFD400' } })
+          map.addLayer({ id: 'cluster-count', type: 'symbol', source: 'places', filter: ['has', 'point_count'], layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Open Sans Semibold'], 'text-size': 12 }, paint: { 'text-color': '#FFFFFF' } })
+          map.addLayer({ id: 'place-markers', type: 'symbol', source: 'places', filter: ['!', ['has', 'point_count']], layout: { 'icon-image': ['concat', 'marker-', ['get', 'markerType']], 'icon-size': ['case', ['==', ['get', 'id'], selectedIdRef.current ?? ''], 1.28, 1], 'icon-anchor': 'bottom', 'icon-allow-overlap': true, 'icon-ignore-placement': true } })
+          // A separate 48 px hit area keeps the visual pin compact and reliably
+          // tappable without changing the source category icon.
+          map.addLayer({ id: 'place-hit-areas', type: 'circle', source: 'places', filter: ['!', ['has', 'point_count']], paint: { 'circle-color': '#151515', 'circle-radius': 24, 'circle-opacity': 0.01 } })
+          map.on('click', async (event: MapLayerMouseEvent) => {
+            const { x, y } = event.point
+            const nearbyPlaces = map.queryRenderedFeatures([[x - 24, y - 36], [x + 24, y + 24]], { layers: ['place-markers'] })
+            const id = nearbyPlaces[0]?.properties?.id
+            if (typeof id === 'string') { onSelectRef.current(id); return }
 
-          const features = map.queryRenderedFeatures(event.point, { layers: ['clusters'] })
-          const clusterId = features[0]?.properties?.cluster_id
-          const source = map.getSource('places') as GeoJSONSource
-          if (typeof clusterId === 'number') { const clusterZoom = await source.getClusterExpansionZoom(clusterId); const coordinates = (features[0].geometry as Point).coordinates; map.easeTo({ center: [coordinates[0], coordinates[1]], zoom: clusterZoom, duration: 320 }) }
-        })
-        for (const layer of ['place-hit-areas', 'clusters']) {
-          map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer' })
-          map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = '' })
-        }
-        mapReadyRef.current = true
-        const initialPlace = placesRef.current.find((place) => place.id === selectedIdRef.current)
-        if (initialPlace) map.jumpTo({ center: [initialPlace.coordinates.longitude, initialPlace.coordinates.latitude], zoom: Math.max(zoom, 14) })
-        const initialUserPosition = userPositionRef.current
-        if (initialUserPosition) {
-          showUserPosition(map, initialUserPosition)
-          if (recenterRequestRef.current > 0 || !initialPlace) {
-            focusUserPosition(map, initialUserPosition)
-            appliedRecenterRef.current = recenterRequestRef.current
+            const features = map.queryRenderedFeatures(event.point, { layers: ['clusters'] })
+            const clusterId = features[0]?.properties?.cluster_id
+            const source = map.getSource('places') as GeoJSONSource
+            if (typeof clusterId === 'number') { const clusterZoom = await source.getClusterExpansionZoom(clusterId); const coordinates = (features[0].geometry as Point).coordinates; map.easeTo({ center: [coordinates[0], coordinates[1]], zoom: clusterZoom, duration: 320 }) }
+          })
+          for (const layer of ['place-hit-areas', 'clusters']) {
+            map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer' })
+            map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = '' })
           }
-        }
+          mapReadyRef.current = true
+          const initialPlace = placesRef.current.find((place) => place.id === selectedIdRef.current)
+          if (initialPlace) map.jumpTo({ center: [initialPlace.coordinates.longitude, initialPlace.coordinates.latitude], zoom: Math.max(zoom, 14) })
+          const initialUserPosition = userPositionRef.current
+          if (initialUserPosition) {
+            showUserPosition(map, initialUserPosition)
+            if (recenterRequestRef.current > 0 || !initialPlace) {
+              focusUserPosition(map, initialUserPosition)
+              appliedRecenterRef.current = recenterRequestRef.current
+            }
+          }
+        })().catch(() => onErrorRef.current())
       })
       map.on('error', (event) => { if (!event.error?.message?.includes('tile')) onErrorRef.current() })
       return () => { mapReadyRef.current = false; map.remove(); mapRef.current = null }
@@ -130,12 +137,7 @@ export default function MapCanvas({ locale, places, center, zoom, selectedId, us
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReadyRef.current) return
-    for (const layer of ['place-markers']) {
-      if (map.getLayer(layer)) {
-        map.setPaintProperty(layer, 'circle-radius', ['case', ['==', ['get', 'id'], selectedId ?? ''], 12, 8])
-        map.setPaintProperty(layer, 'circle-stroke-width', ['case', ['==', ['get', 'id'], selectedId ?? ''], 4, 3])
-      }
-    }
+    if (map.getLayer('place-markers')) map.setLayoutProperty('place-markers', 'icon-size', ['case', ['==', ['get', 'id'], selectedId ?? ''], 1.28, 1])
     if (selectedId) {
       const place = placesRef.current.find((item) => item.id === selectedId)
       if (place) map.easeTo({ center: [place.coordinates.longitude, place.coordinates.latitude], zoom: Math.max(map.getZoom(), 14), duration: 300, offset: [0, -80] })
