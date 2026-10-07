@@ -215,7 +215,7 @@ p { max-width: 72ch; }
 .place-preview-address svg { flex: 0 0 auto; margin-top: .08rem; }
 .place-preview-copy .button { margin-top: .65rem; }
 .preview-close { position: absolute; right: .7rem; top: .7rem; }
-.mobile-results { position: absolute; z-index: 7; inset: auto .5rem 0; height: min(78%, 620px); min-height: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--paper); box-shadow: 0 -14px 35px rgba(21,21,21,.2); padding-bottom: env(safe-area-inset-bottom); }
+.mobile-results { position: absolute; z-index: 7; inset: auto .5rem 0; height: min(88%, 720px); min-height: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--paper); box-shadow: 0 -14px 35px rgba(21,21,21,.2); padding-bottom: env(safe-area-inset-bottom); }
 .draggable-sheet { transition: transform 220ms cubic-bezier(.2,.8,.2,1); will-change: auto; }
 .draggable-sheet.is-dragging { transition: none; will-change: transform; }
 .sheet-drag-handle { display: none; position: absolute; z-index: 2; top: 0; left: 50%; width: 64px; height: 44px; padding: 0; transform: translateX(-50%); border: 0; background: transparent; cursor: grab; touch-action: none; }

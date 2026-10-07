@@ -21,7 +21,6 @@ import { readPendingLocation } from '@/lib/browser-storage'
 const MapCanvas = dynamic(() => import('@/components/map/map-canvas'), { ssr: false, loading: () => <div className="map-canvas skeleton" aria-hidden="true" /> })
 
 type LocationState = 'idle' | 'loading' | 'granted' | GeolocationFailure
-type ListSheetSnap = 'peek' | 'expanded'
 
 export function ExploreExperience({ locale, city, places, initialPosition, initialPlaceId, collectionLabel, requestLocationOnMount = false }: { locale: Locale; city: City; places: Place[]; initialPosition?: Coordinates | null; initialPlaceId?: string; collectionLabel?: string; requestLocationOnMount?: boolean }) {
   const t = getDictionary(locale)
@@ -32,7 +31,6 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
   const [locationState, setLocationState] = useState<LocationState>(initialPosition ? 'granted' : 'idle')
   const [mapError, setMapError] = useState(false)
   const [showMobileList, setShowMobileList] = useState(false)
-  const [listSheetSnap, setListSheetSnap] = useState<ListSheetSnap>('expanded')
   const [recenterRequest, setRecenterRequest] = useState(0)
   const categories = useMemo(() => [...new Map(places.map((place) => [place.category.id, { id: place.category.id, name: place.categoryName }])).values()], [places])
   const filtered = useMemo(() => places
@@ -55,27 +53,24 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
       setUserPosition(result.coordinates)
       setLocationState('granted')
       setSelectedId(undefined)
-      setListSheetSnap('peek')
-      setShowMobileList(true)
       track('location_granted')
       return
     }
     setLocationState(result.reason)
     track('location_denied', { reason: result.reason })
-  }, [setListSheetSnap, setLocationState, setSelectedId, setShowMobileList, setUserPosition])
+  }, [setLocationState, setSelectedId, setUserPosition])
 
   useEffect(() => {
     track('map_opened', { city: city.id })
     const pending = readPendingLocation()
-    if (pending) queueMicrotask(() => { setUserPosition(pending); setLocationState('granted'); setListSheetSnap('peek'); setShowMobileList(true) })
+    if (pending) queueMicrotask(() => { setUserPosition(pending); setLocationState('granted') })
     else if (requestLocationOnMount) queueMicrotask(() => { void requestLocation() })
   }, [city.id, requestLocation, requestLocationOnMount])
 
   const handleNearMe = () => {
     if (locationActive) {
       setSelectedId(undefined)
-      setListSheetSnap('peek')
-      setShowMobileList(true)
+      setShowMobileList(false)
       setRecenterRequest((value) => value + 1)
       return
     }
@@ -100,9 +95,9 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
       {mapError ? <div className="map-canvas"><div className="map-state"><Layers3 size={30} /><h3>{t.map.mapUnavailable}</h3><p>{t.map.mapUnavailableHelp}</p></div></div> : <MapCanvas locale={locale} places={mappablePlaces} center={city.coordinates} zoom={city.zoom} selectedId={validSelectedId} userPosition={userPosition} recenterRequest={recenterRequest} label={`${t.map.title}: ${city.name}`} onSelect={selectPlace} onError={() => setMapError(true)} />}
       {collectionLabel && <div className="map-context-label"><span>{t.guides.mapCollection}</span><strong>{collectionLabel}</strong></div>}
       {locationActive && !mapError && <button type="button" className={`map-recenter-button${showMobileList ? ' has-sheet' : ''}`} aria-label={t.map.recenter} title={t.map.recenter} onClick={() => setRecenterRequest((value) => value + 1)}><LocateFixed size={21} aria-hidden="true" /></button>}
-      {!selected && <div className="map-bottom-actions"><button type="button" className="button button-dark" onClick={() => { if (showMobileList) setShowMobileList(false); else { setListSheetSnap('expanded'); setShowMobileList(true) } }}>{showMobileList ? <MapIcon size={18}/> : <List size={18}/>} {showMobileList ? t.map.map : `${t.map.list} · ${filtered.length}`}</button></div>}
+      {!selected && <div className="map-bottom-actions"><button type="button" className="button button-dark" onClick={() => setShowMobileList((value) => !value)}>{showMobileList ? <MapIcon size={18}/> : <List size={18}/>} {showMobileList ? t.map.map : `${t.map.list} · ${filtered.length}`}</button></div>}
       {selected && !showMobileList && <DraggableSheet className="place-preview" dismissLabel={t.map.closePreview} onDismiss={() => setSelectedId(undefined)}><div className="place-preview-image"><SafeImage src={selected.images[0] || ''} alt="" fill preload sizes="112px" fallbackLabel={t.places.photoUnavailable} /></div><div className="place-preview-copy"><span className="place-tag">{selected.categoryName}</span><h3>{selected.name}</h3><div className="muted">{userPosition && selected.coordinates ? `${formatDistance(distanceInKm(userPosition, selected.coordinates), locale)} · ` : ''}{selected.style}</div>{selected.address && <div className="place-preview-address"><MapPin size={15} aria-hidden="true"/><span>{selected.address}</span></div>}<Link className="button button-primary button-small" href={route.place(locale, city.slug, selected.slug)}>{t.map.discover}</Link></div><button type="button" className="icon-button preview-close" aria-label={t.map.closePreview} onClick={() => setSelectedId(undefined)}><X size={18}/></button></DraggableSheet>}
-      {showMobileList && <DraggableSheet className="mobile-results" dismissLabel={t.common.close} snap={listSheetSnap} onSnapChange={setListSheetSnap} expandLabel={t.map.expandNearby} collapseLabel={t.map.collapseNearby} onDismiss={() => setShowMobileList(false)}><div className="results-count" role={locationActive ? 'status' : undefined}><span>{nearbyCountLabel}</span><button type="button" className="icon-button sheet-map-button" aria-label={t.map.map} onClick={() => setShowMobileList(false)}><MapIcon size={18} aria-hidden="true" /></button></div><div className="explore-list sheet-results-list" tabIndex={0} aria-label={nearbyCountLabel}>{filtered.length ? filtered.map((place, index) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} imagePreload={index === 0} distance={userPosition && place.coordinates ? formatDistance(distanceInKm(userPosition, place.coordinates), locale) : undefined} />) : <EmptyState title={t.map.noPlaces} body={t.map.noPlacesHelp} />}</div></DraggableSheet>}
+      {showMobileList && <DraggableSheet className="mobile-results" dismissLabel={t.common.close} onDismiss={() => setShowMobileList(false)}><div className="results-count" role={locationActive ? 'status' : undefined}><span>{nearbyCountLabel}</span><button type="button" className="icon-button sheet-map-button" aria-label={t.map.map} onClick={() => setShowMobileList(false)}><MapIcon size={18} aria-hidden="true" /></button></div><div className="explore-list sheet-results-list" tabIndex={0} aria-label={nearbyCountLabel}>{filtered.length ? filtered.map((place, index) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} imagePreload={index === 0} distance={userPosition && place.coordinates ? formatDistance(distanceInKm(userPosition, place.coordinates), locale) : undefined} />) : <EmptyState title={t.map.noPlaces} body={t.map.noPlacesHelp} />}</div></DraggableSheet>}
     </section>
   </div></div>
 }
