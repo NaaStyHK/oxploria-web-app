@@ -26,7 +26,35 @@ function collection(places: MappablePlace[]): FeatureCollection<Point, { id: str
   return { type: 'FeatureCollection', features: places.map((place) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [place.coordinates.longitude, place.coordinates.latitude] }, properties: { id: place.id, name: place.name } })) }
 }
 
-export default function MapCanvas({ locale, places, center, zoom, selectedId, userPosition, label, onSelect, onError }: { locale: Locale; places: MappablePlace[]; center: Coordinates; zoom: number; selectedId?: string; userPosition?: Coordinates | null; label: string; onSelect: (id: string) => void; onError: () => void }) {
+function userPositionData(position: Coordinates): FeatureCollection<Point> {
+  return { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [position.longitude, position.latitude] }, properties: {} }] }
+}
+
+function showUserPosition(map: MapLibreMap, position: Coordinates) {
+  const data = userPositionData(position)
+  const source = map.getSource('user-position') as GeoJSONSource | undefined
+  if (source) source.setData(data)
+  else {
+    map.addSource('user-position', { type: 'geojson', data })
+    map.addLayer({ id: 'user-position-halo', type: 'circle', source: 'user-position', paint: { 'circle-radius': 17, 'circle-color': 'rgba(23,107,222,.18)' } })
+    map.addLayer({ id: 'user-position-ring', type: 'circle', source: 'user-position', paint: { 'circle-radius': 10, 'circle-color': '#FFFFFF', 'circle-stroke-width': 1, 'circle-stroke-color': 'rgba(21,21,21,.28)' } })
+    map.addLayer({ id: 'user-position-dot', type: 'circle', source: 'user-position', paint: { 'circle-radius': 6, 'circle-color': '#176BDE', 'circle-stroke-width': 1.5, 'circle-stroke-color': '#FFFFFF' } })
+  }
+}
+
+function focusUserPosition(map: MapLibreMap, position: Coordinates) {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const mobile = map.getContainer().clientWidth < 900
+  map.easeTo({
+    center: [position.longitude, position.latitude],
+    zoom: 14.25,
+    duration: reducedMotion ? 0 : 360,
+    offset: mobile ? [0, -56] : [0, 0],
+    essential: false,
+  })
+}
+
+export default function MapCanvas({ locale, places, center, zoom, selectedId, userPosition, recenterRequest, label, onSelect, onError }: { locale: Locale; places: MappablePlace[]; center: Coordinates; zoom: number; selectedId?: string; userPosition?: Coordinates | null; recenterRequest: number; label: string; onSelect: (id: string) => void; onError: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const onSelectRef = useRef(onSelect)
@@ -76,11 +104,8 @@ export default function MapCanvas({ locale, places, center, zoom, selectedId, us
         if (initialPlace) map.jumpTo({ center: [initialPlace.coordinates.longitude, initialPlace.coordinates.latitude], zoom: Math.max(zoom, 14) })
         const initialUserPosition = userPositionRef.current
         if (initialUserPosition) {
-          const data: FeatureCollection<Point> = { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [initialUserPosition.longitude, initialUserPosition.latitude] }, properties: {} }] }
-          map.addSource('user-position', { type: 'geojson', data })
-          map.addLayer({ id: 'user-position-ring', type: 'circle', source: 'user-position', paint: { 'circle-radius': 13, 'circle-color': 'rgba(255,212,0,.25)', 'circle-stroke-width': 1, 'circle-stroke-color': '#151515' } })
-          map.addLayer({ id: 'user-position-dot', type: 'circle', source: 'user-position', paint: { 'circle-radius': 6, 'circle-color': '#151515', 'circle-stroke-width': 2, 'circle-stroke-color': '#FFFFFF' } })
-          if (!initialPlace) map.jumpTo({ center: [initialUserPosition.longitude, initialUserPosition.latitude], zoom: Math.max(zoom, 14.5) })
+          showUserPosition(map, initialUserPosition)
+          if (!initialPlace) focusUserPosition(map, initialUserPosition)
         }
       })
       map.on('error', (event) => { if (!event.error?.message?.includes('tile')) onErrorRef.current() })
@@ -113,15 +138,9 @@ export default function MapCanvas({ locale, places, center, zoom, selectedId, us
   useEffect(() => {
     const map = mapRef.current
     if (!map?.isStyleLoaded() || !userPosition) return
-    const data: FeatureCollection<Point> = { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [userPosition.longitude, userPosition.latitude] }, properties: {} }] }
-    if (map.getSource('user-position')) (map.getSource('user-position') as GeoJSONSource).setData(data)
-    else {
-      map.addSource('user-position', { type: 'geojson', data })
-      map.addLayer({ id: 'user-position-ring', type: 'circle', source: 'user-position', paint: { 'circle-radius': 13, 'circle-color': 'rgba(255,212,0,.25)', 'circle-stroke-width': 1, 'circle-stroke-color': '#151515' } })
-      map.addLayer({ id: 'user-position-dot', type: 'circle', source: 'user-position', paint: { 'circle-radius': 6, 'circle-color': '#151515', 'circle-stroke-width': 2, 'circle-stroke-color': '#FFFFFF' } })
-    }
-    map.easeTo({ center: [userPosition.longitude, userPosition.latitude], zoom: 14.5, duration: 320 })
-  }, [userPosition])
+    showUserPosition(map, userPosition)
+    focusUserPosition(map, userPosition)
+  }, [recenterRequest, userPosition])
 
   return <div ref={containerRef} className="map-canvas" role="region" aria-label={label} />
 }
