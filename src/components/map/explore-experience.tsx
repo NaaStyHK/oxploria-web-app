@@ -30,7 +30,7 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
   const [userPosition, setUserPosition] = useState<Coordinates | null>(initialPosition ?? null)
   const [locationState, setLocationState] = useState<LocationState>(initialPosition ? 'granted' : 'idle')
   const [mapError, setMapError] = useState(false)
-  const [showMobileList, setShowMobileList] = useState(false)
+  const [mobileView, setMobileView] = useState<'map' | 'list'>('map')
   const [recenterRequest, setRecenterRequest] = useState(0)
   const categories = useMemo(() => [...new Map(places.map((place) => [place.category.id, { id: place.category.id, name: place.categoryName }])).values()], [places])
   const filtered = useMemo(() => places
@@ -53,35 +53,37 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
       setUserPosition(result.coordinates)
       setLocationState('granted')
       setSelectedId(undefined)
+      setMobileView('map')
+      setRecenterRequest((value) => value + 1)
       track('location_granted')
       return
     }
     setLocationState(result.reason)
     track('location_denied', { reason: result.reason })
-  }, [setLocationState, setSelectedId, setUserPosition])
+  }, [setLocationState, setSelectedId, setUserPosition, setMobileView, setRecenterRequest])
 
   useEffect(() => {
     track('map_opened', { city: city.id })
     const pending = readPendingLocation()
-    if (pending) queueMicrotask(() => { setUserPosition(pending); setLocationState('granted') })
+    if (pending) queueMicrotask(() => { setUserPosition(pending); setLocationState('granted'); setMobileView('map'); setRecenterRequest((value) => value + 1) })
     else if (requestLocationOnMount) queueMicrotask(() => { void requestLocation() })
   }, [city.id, requestLocation, requestLocationOnMount])
 
   const handleNearMe = () => {
     if (locationActive) {
       setSelectedId(undefined)
-      setShowMobileList(false)
+      setMobileView('map')
       setRecenterRequest((value) => value + 1)
       return
     }
     void requestLocation()
   }
 
-  const selectPlace = useCallback((id: string) => { setSelectedId(id); setShowMobileList(false); track('place_marker_clicked', { placeId: id }) }, [setSelectedId, setShowMobileList])
+  const selectPlace = useCallback((id: string) => { setSelectedId(id); setMobileView('map'); track('place_marker_clicked', { placeId: id }) }, [setSelectedId, setMobileView])
   const locationMessage = locationState === 'insecure' ? t.map.locationInsecure : locationState === 'denied' ? t.map.locationDenied : locationState === 'unavailable' ? t.map.locationUnavailable : locationState === 'timeout' ? t.map.locationTimeout : locationState === 'unsupported' ? t.map.locationUnsupported : locationState === 'error' ? t.map.locationError : null
   const reset = () => { setQuery(''); setCategory('all'); setSelectedId(undefined) }
 
-  return <div className="explore-shell"><div className="explore-grid">
+  return <div className={`explore-shell mobile-view-${mobileView}`}><div className="explore-grid">
     <aside className="explore-sidebar" aria-label={t.map.resultsNear}>
       <div className="explore-toolbar"><label className="map-search"><span className="sr-only">{t.map.search}</span><input value={query} onChange={(event) => { setQuery(event.target.value); track('search_performed', { queryLength: event.target.value.length }) }} placeholder={t.map.search}/><Search size={18} aria-hidden="true" /></label>
         <div className="map-controls-row"><button type="button" className="chip proximity-chip" aria-pressed={locationActive} onClick={handleNearMe} disabled={locationState === 'loading'}>{locationState === 'loading' ? <LoaderCircle className="spin" size={17} aria-hidden="true" /> : <LocateFixed size={17} aria-hidden="true" />}{locationState === 'loading' ? t.map.locating : t.map.nearMe}</button><button className="chip" type="button" aria-pressed={category === 'all'} onClick={() => setCategory('all')}>{t.map.all}</button>{categories.map((item) => <button key={item.id} type="button" className="chip" aria-pressed={category === item.id} onClick={() => { setCategory(item.id); track('filter_applied', { category: item.id }) }}>{item.name}</button>)}</div>
@@ -94,10 +96,13 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
     <section className="map-panel" aria-label={t.map.title}>
       {mapError ? <div className="map-canvas"><div className="map-state"><Layers3 size={30} /><h3>{t.map.mapUnavailable}</h3><p>{t.map.mapUnavailableHelp}</p></div></div> : <MapCanvas locale={locale} places={mappablePlaces} center={city.coordinates} zoom={city.zoom} selectedId={validSelectedId} userPosition={userPosition} recenterRequest={recenterRequest} label={`${t.map.title}: ${city.name}`} onSelect={selectPlace} onError={() => setMapError(true)} />}
       {collectionLabel && <div className="map-context-label"><span>{t.guides.mapCollection}</span><strong>{collectionLabel}</strong></div>}
-      {locationActive && !mapError && <button type="button" className={`map-recenter-button${showMobileList ? ' has-sheet' : ''}`} aria-label={t.map.recenter} title={t.map.recenter} onClick={() => setRecenterRequest((value) => value + 1)}><LocateFixed size={21} aria-hidden="true" /></button>}
-      {!selected && <div className="map-bottom-actions"><button type="button" className="button button-dark" onClick={() => setShowMobileList((value) => !value)}>{showMobileList ? <MapIcon size={18}/> : <List size={18}/>} {showMobileList ? t.map.map : `${t.map.list} · ${filtered.length}`}</button></div>}
-      {selected && !showMobileList && <DraggableSheet className="place-preview" dismissLabel={t.map.closePreview} onDismiss={() => setSelectedId(undefined)}><div className="place-preview-image"><SafeImage src={selected.images[0] || ''} alt="" fill preload sizes="112px" fallbackLabel={t.places.photoUnavailable} /></div><div className="place-preview-copy"><span className="place-tag">{selected.categoryName}</span><h3>{selected.name}</h3><div className="muted">{userPosition && selected.coordinates ? `${formatDistance(distanceInKm(userPosition, selected.coordinates), locale)} · ` : ''}{selected.style}</div>{selected.address && <div className="place-preview-address"><MapPin size={15} aria-hidden="true"/><span>{selected.address}</span></div>}<Link className="button button-primary button-small" href={route.place(locale, city.slug, selected.slug)}>{t.map.discover}</Link></div><button type="button" className="icon-button preview-close" aria-label={t.map.closePreview} onClick={() => setSelectedId(undefined)}><X size={18}/></button></DraggableSheet>}
-      {showMobileList && <DraggableSheet className="mobile-results" dismissLabel={t.common.close} onDismiss={() => setShowMobileList(false)}><div className="results-count" role={locationActive ? 'status' : undefined}><span>{nearbyCountLabel}</span><button type="button" className="icon-button sheet-map-button" aria-label={t.map.map} onClick={() => setShowMobileList(false)}><MapIcon size={18} aria-hidden="true" /></button></div><div className="explore-list sheet-results-list" tabIndex={0} aria-label={nearbyCountLabel}>{filtered.length ? filtered.map((place, index) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} imagePreload={index === 0} distance={userPosition && place.coordinates ? formatDistance(distanceInKm(userPosition, place.coordinates), locale) : undefined} />) : <EmptyState title={t.map.noPlaces} body={t.map.noPlacesHelp} />}</div></DraggableSheet>}
+      {locationActive && !mapError && <button type="button" className="map-recenter-button" aria-label={t.map.recenter} title={t.map.recenter} onClick={() => setRecenterRequest((value) => value + 1)}><LocateFixed size={21} aria-hidden="true" /></button>}
+      {!selected && <div className="map-bottom-actions"><button type="button" className="button button-dark" onClick={() => setMobileView('list')}><List size={18} aria-hidden="true" /> {`${t.map.list} · ${filtered.length}`}</button></div>}
+      {selected && <DraggableSheet className="place-preview" dismissLabel={t.map.closePreview} onDismiss={() => setSelectedId(undefined)}><div className="place-preview-image"><SafeImage src={selected.images[0] || ''} alt="" fill preload sizes="112px" fallbackLabel={t.places.photoUnavailable} /></div><div className="place-preview-copy"><span className="place-tag">{selected.categoryName}</span><h3>{selected.name}</h3><div className="muted">{userPosition && selected.coordinates ? `${formatDistance(distanceInKm(userPosition, selected.coordinates), locale)} · ` : ''}{selected.style}</div>{selected.address && <div className="place-preview-address"><MapPin size={15} aria-hidden="true"/><span>{selected.address}</span></div>}<Link className="button button-primary button-small" href={route.place(locale, city.slug, selected.slug)}>{t.map.discover}</Link></div><button type="button" className="icon-button preview-close" aria-label={t.map.closePreview} onClick={() => setSelectedId(undefined)}><X size={18}/></button></DraggableSheet>}
+    </section>
+    <section className="mobile-list-view" aria-label={t.map.resultsNear} aria-hidden={mobileView === 'map'}>
+      <div className="mobile-list-heading"><span role={locationActive ? 'status' : undefined}>{nearbyCountLabel}</span><button type="button" className="button button-light button-small" onClick={() => setMobileView('map')}><MapIcon size={18} aria-hidden="true" /> {t.map.map}</button></div>
+      <div className="explore-list mobile-list-scroll" tabIndex={mobileView === 'list' ? 0 : -1} aria-label={nearbyCountLabel}>{mobileView === 'list' && (filtered.length ? filtered.map((place, index) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} imagePreload={index === 0} distance={userPosition && place.coordinates ? formatDistance(distanceInKm(userPosition, place.coordinates), locale) : undefined} />) : <EmptyState title={t.map.noPlaces} body={t.map.noPlacesHelp} action={<button type="button" className="button button-dark" onClick={reset}>{t.common.reset}</button>} />)}</div>
     </section>
   </div></div>
 }

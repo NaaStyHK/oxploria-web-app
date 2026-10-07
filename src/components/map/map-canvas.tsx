@@ -44,12 +44,11 @@ function showUserPosition(map: MapLibreMap, position: Coordinates) {
 
 function focusUserPosition(map: MapLibreMap, position: Coordinates) {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  const mobile = map.getContainer().clientWidth < 900
+  map.stop()
   map.easeTo({
     center: [position.longitude, position.latitude],
     zoom: 14.25,
     duration: reducedMotion ? 0 : 360,
-    offset: mobile ? [0, -56] : [0, 0],
     essential: false,
   })
 }
@@ -57,16 +56,20 @@ function focusUserPosition(map: MapLibreMap, position: Coordinates) {
 export default function MapCanvas({ locale, places, center, zoom, selectedId, userPosition, recenterRequest, label, onSelect, onError }: { locale: Locale; places: MappablePlace[]; center: Coordinates; zoom: number; selectedId?: string; userPosition?: Coordinates | null; recenterRequest: number; label: string; onSelect: (id: string) => void; onError: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
+  const mapReadyRef = useRef(false)
   const onSelectRef = useRef(onSelect)
   const onErrorRef = useRef(onError)
   const placesRef = useRef(places)
   const selectedIdRef = useRef(selectedId)
   const userPositionRef = useRef(userPosition)
+  const recenterRequestRef = useRef(recenterRequest)
+  const appliedRecenterRef = useRef(0)
   useEffect(() => { onSelectRef.current = onSelect }, [onSelect])
   useEffect(() => { onErrorRef.current = onError }, [onError])
   useEffect(() => { placesRef.current = places }, [places])
   useEffect(() => { selectedIdRef.current = selectedId }, [selectedId])
   useEffect(() => { userPositionRef.current = userPosition }, [userPosition])
+  useEffect(() => { recenterRequestRef.current = recenterRequest }, [recenterRequest])
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -100,29 +103,33 @@ export default function MapCanvas({ locale, places, center, zoom, selectedId, us
           map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer' })
           map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = '' })
         }
+        mapReadyRef.current = true
         const initialPlace = placesRef.current.find((place) => place.id === selectedIdRef.current)
         if (initialPlace) map.jumpTo({ center: [initialPlace.coordinates.longitude, initialPlace.coordinates.latitude], zoom: Math.max(zoom, 14) })
         const initialUserPosition = userPositionRef.current
         if (initialUserPosition) {
           showUserPosition(map, initialUserPosition)
-          if (!initialPlace) focusUserPosition(map, initialUserPosition)
+          if (recenterRequestRef.current > 0 || !initialPlace) {
+            focusUserPosition(map, initialUserPosition)
+            appliedRecenterRef.current = recenterRequestRef.current
+          }
         }
       })
       map.on('error', (event) => { if (!event.error?.message?.includes('tile')) onErrorRef.current() })
-      return () => { map.remove(); mapRef.current = null }
+      return () => { mapReadyRef.current = false; map.remove(); mapRef.current = null }
     } catch { onErrorRef.current() }
   }, [center.latitude, center.longitude, locale, zoom])
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map?.isStyleLoaded()) return
+    if (!map || !mapReadyRef.current) return
     const source = map.getSource('places') as GeoJSONSource | undefined
     source?.setData(collection(places))
   }, [places])
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map?.isStyleLoaded()) return
+    if (!map || !mapReadyRef.current) return
     for (const layer of ['place-markers']) {
       if (map.getLayer(layer)) {
         map.setPaintProperty(layer, 'circle-radius', ['case', ['==', ['get', 'id'], selectedId ?? ''], 12, 8])
@@ -130,17 +137,28 @@ export default function MapCanvas({ locale, places, center, zoom, selectedId, us
       }
     }
     if (selectedId) {
-      const place = places.find((item) => item.id === selectedId)
+      const place = placesRef.current.find((item) => item.id === selectedId)
       if (place) map.easeTo({ center: [place.coordinates.longitude, place.coordinates.latitude], zoom: Math.max(map.getZoom(), 14), duration: 300, offset: [0, -80] })
     }
-  }, [places, selectedId])
+  }, [selectedId])
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map?.isStyleLoaded() || !userPosition) return
+    if (!map || !mapReadyRef.current || !userPosition) return
     showUserPosition(map, userPosition)
-    focusUserPosition(map, userPosition)
+    if (recenterRequest > appliedRecenterRef.current) {
+      focusUserPosition(map, userPosition)
+      appliedRecenterRef.current = recenterRequest
+    }
   }, [recenterRequest, userPosition])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const observer = new ResizeObserver(() => mapRef.current?.resize())
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [])
 
   return <div ref={containerRef} className="map-canvas" role="region" aria-label={label} />
 }
