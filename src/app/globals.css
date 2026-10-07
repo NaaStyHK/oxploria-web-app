@@ -203,9 +203,6 @@ p { max-width: 72ch; }
 .map-state { position: absolute; z-index: 3; inset: 50% auto auto 50%; transform: translate(-50%, -50%); width: min(calc(100% - 2rem), 420px); padding: 1.1rem; border-radius: var(--radius); background: var(--white); box-shadow: var(--shadow); text-align: center; }
 .map-state h3 { margin-bottom: .5rem; }
 .map-bottom-actions { position: absolute; z-index: 5; left: 50%; bottom: max(1rem, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; gap: .5rem; }
-.map-recenter-button { position: absolute; z-index: 6; top: 82px; right: 10px; width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 12px; background: var(--white); color: var(--ink); box-shadow: var(--shadow-small); cursor: pointer; }
-.map-recenter-button:hover { background: var(--yellow); }
-.map-recenter-button:active { transform: scale(.96); }
 .place-preview { position: absolute; z-index: 6; left: .75rem; right: .75rem; bottom: max(.75rem, env(safe-area-inset-bottom)); display: grid; grid-template-columns: 112px 1fr; gap: .85rem; min-height: 150px; padding: .7rem; border-radius: var(--radius-lg); background: var(--white); box-shadow: var(--shadow); }
 .place-preview-image { position: relative; min-height: 132px; border-radius: 12px; overflow: hidden; }
 .place-preview-image img { object-fit: cover; }
@@ -319,7 +316,6 @@ body:has(.explore-shell) .site-footer { display: none; }
   .mobile-view-list .mobile-list-view { display: flex; }
   .sheet-drag-handle { display: block; }
   .place-preview { padding-top: 2.3rem; }
-  .map-recenter-button { top: 82px; right: max(.75rem, env(safe-area-inset-right)); }
   .map-context-label { top: auto; right: .75rem; bottom: 5rem; }
 }
 
