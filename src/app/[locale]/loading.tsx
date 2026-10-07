@@ -1,0 +1,3 @@
+export default function Loading() {
+  return <main className="page-shell" aria-busy="true"><section className="page-hero"><div className="container"><div className="skeleton" style={{ width: 'min(78vw, 680px)', height: 92, borderRadius: 14 }}/><div className="skeleton" style={{ width: 'min(64vw, 520px)', height: 28, borderRadius: 10, marginTop: 24 }}/></div></section><section className="section-tight"><div className="container place-grid">{[0,1,2,3].map((item) => <div key={item} className="skeleton" style={{ aspectRatio: '4/3', borderRadius: 14 }}/>)}</div></section></main>
+}
