@@ -215,13 +215,13 @@ p { max-width: 72ch; }
 .place-preview-address svg { flex: 0 0 auto; margin-top: .08rem; }
 .place-preview-copy .button { margin-top: .65rem; }
 .preview-close { position: absolute; right: .7rem; top: .7rem; }
-.mobile-results { position: absolute; z-index: 7; inset: auto .5rem 0; height: min(78%, 620px); display: flex; flex-direction: column; border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--paper); box-shadow: 0 -14px 35px rgba(21,21,21,.2); padding-bottom: env(safe-area-inset-bottom); }
-.draggable-sheet { transition: transform 220ms cubic-bezier(.2,.8,.2,1); will-change: transform; }
-.draggable-sheet.is-dragging { transition: none; }
+.mobile-results { position: absolute; z-index: 7; inset: auto .5rem 0; height: min(78%, 620px); min-height: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--paper); box-shadow: 0 -14px 35px rgba(21,21,21,.2); padding-bottom: env(safe-area-inset-bottom); }
+.draggable-sheet { transition: transform 220ms cubic-bezier(.2,.8,.2,1); will-change: auto; }
+.draggable-sheet.is-dragging { transition: none; will-change: transform; }
 .sheet-drag-handle { display: none; position: absolute; z-index: 2; top: 0; left: 50%; width: 64px; height: 44px; padding: 0; transform: translateX(-50%); border: 0; background: transparent; cursor: grab; touch-action: none; }
 .sheet-drag-handle:active { cursor: grabbing; }
 .sheet-drag-handle span { display: block; width: 42px; height: 5px; margin: 11px auto 0; border-radius: 99px; background: var(--line-strong); }
-.mobile-results .explore-list { min-height: 0; }
+.mobile-results > .sheet-results-list { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior-x: none; overscroll-behavior-y: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 .mobile-results > .results-count { min-height: 72px; padding-top: 2.2rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
 .sheet-map-button { flex: 0 0 auto; width: 44px; height: 44px; }
 .map-context-label { position: absolute; z-index: 5; top: 1rem; right: 1rem; max-width: min(280px, calc(100% - 2rem)); padding: .65rem .8rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(255,255,255,.94); box-shadow: var(--shadow-small); backdrop-filter: blur(8px); }
