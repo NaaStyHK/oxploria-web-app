@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type WheelEvent } from 'react'
 import { Layers3, List, LocateFixed, LoaderCircle, Map as MapIcon, MapPin, Search, X } from 'lucide-react'
 import type { City, Coordinates, Place } from '@/lib/types'
 import type { Locale } from '@/lib/i18n/config'
@@ -83,11 +83,20 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
   const selectPlace = useCallback((id: string) => { setSelectedId(id); setMobileView('map'); track('place_marker_clicked', { placeId: id }) }, [setSelectedId, setMobileView])
   const locationMessage = locationState === 'insecure' ? t.map.locationInsecure : locationState === 'denied' ? t.map.locationDenied : locationState === 'unavailable' ? t.map.locationUnavailable : locationState === 'timeout' ? t.map.locationTimeout : locationState === 'unsupported' ? t.map.locationUnsupported : locationState === 'error' ? t.map.locationError : null
   const reset = () => { setQuery(''); setCategory('all'); setSelectedId(undefined) }
+  const scrollFilters = (event: WheelEvent<HTMLDivElement>) => {
+    const row = event.currentTarget
+    const maxScroll = row.scrollWidth - row.clientWidth
+    if (maxScroll <= 0 || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return
+    const nextScroll = Math.max(0, Math.min(maxScroll, row.scrollLeft + event.deltaY))
+    if (nextScroll === row.scrollLeft) return
+    event.preventDefault()
+    row.scrollLeft = nextScroll
+  }
 
   return <div className={`explore-shell mobile-view-${mobileView}`}><div className="explore-grid">
     <aside className="explore-sidebar" aria-label={t.map.resultsNear}>
       <div className="explore-toolbar"><label className="map-search"><span className="sr-only">{t.map.search}</span><input value={query} onChange={(event) => { setQuery(event.target.value); track('search_performed', { queryLength: event.target.value.length }) }} placeholder={t.map.search}/><Search size={18} aria-hidden="true" /></label>
-        <div className="map-controls-row"><button type="button" className="chip proximity-chip" aria-pressed={locationActive} onClick={handleNearMe} disabled={locationState === 'loading'}>{locationState === 'loading' ? <LoaderCircle className="spin" size={17} aria-hidden="true" /> : <LocateFixed size={17} aria-hidden="true" />}{locationState === 'loading' ? t.map.locating : t.map.nearMe}</button><button className="chip" type="button" aria-pressed={category === 'all'} onClick={() => setCategory('all')}>{t.map.all}</button>{categories.map((item) => { const icon = markerIconPath(markerTypeForCategoryId(item.id)); return <button key={item.id} type="button" className="chip category-filter-chip" aria-pressed={category === item.id} onClick={() => { setCategory(item.id); track('filter_applied', { category: item.id }) }}><span className="marker-type-icon" style={{ '--marker-icon': `url(${icon})` } as CSSProperties} aria-hidden="true" />{item.name}</button> })}</div>
+        <div className="map-controls-row" role="group" aria-label={t.map.filters} tabIndex={0} onWheel={scrollFilters}><button type="button" className="chip proximity-chip" aria-pressed={locationActive} onClick={handleNearMe} disabled={locationState === 'loading'}>{locationState === 'loading' ? <LoaderCircle className="spin" size={17} aria-hidden="true" /> : <LocateFixed size={17} aria-hidden="true" />}{locationState === 'loading' ? t.map.locating : t.map.nearMe}</button><button className="chip" type="button" aria-pressed={category === 'all'} onClick={() => setCategory('all')}>{t.map.all}</button>{categories.map((item) => { const icon = markerIconPath(markerTypeForCategoryId(item.id)); return <button key={item.id} type="button" className="chip category-filter-chip" aria-pressed={category === item.id} onClick={() => { setCategory(item.id); track('filter_applied', { category: item.id }) }}><span className="marker-type-icon" style={{ '--marker-icon': `url(${icon})` } as CSSProperties} aria-hidden="true" />{item.name}</button> })}</div>
         {locationMessage && <div className="notice" role="status">{locationMessage}</div>}
         {locationActive && <span className="sr-only" role="status">{t.map.locationActive}</span>}
       </div>
