@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { AttributionControl, GeoJSONSource, Map as MapLibreMap, NavigationControl, setWorkerUrl, type MapLayerMouseEvent, type StyleSpecification } from 'maplibre-gl'
+import { AttributionControl, GeoJSONSource, Map as MapLibreMap, NavigationControl, setWorkerUrl, type MapLayerMouseEvent } from 'maplibre-gl'
 import type { FeatureCollection, Point } from 'geojson'
 import type { Coordinates, Place } from '@/lib/types'
 import type { Locale } from '@/lib/i18n/config'
@@ -13,12 +13,30 @@ const controlLabels: Record<Locale, Record<string, string>> = {
   en: { 'AttributionControl.ToggleAttribution': 'Toggle attribution', 'NavigationControl.ZoomIn': 'Zoom in', 'NavigationControl.ZoomOut': 'Zoom out', 'Map.Title': 'Map' },
 }
 
-const mapStyle: StyleSpecification = {
-  version: 8,
-  sources: {
-    osm: { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, attribution: '© OpenStreetMap contributors' },
-  },
-  layers: [{ id: 'osm', type: 'raster', source: 'osm', paint: { 'raster-saturation': -0.45, 'raster-contrast': 0.08, 'raster-brightness-max': 0.94 } }],
+const mapStyleUrl = '/map/oxploria-light.json'
+const localizedBasemapLayers = [
+  'waterway_line_label',
+  'water_name_point_label',
+  'water_name_line_label',
+  'highway-name-minor',
+  'highway-name-major',
+  'label_other',
+  'label_village',
+  'label_town',
+  'label_state',
+  'label_city',
+  'label_city_capital',
+  'label_country_3',
+  'label_country_2',
+  'label_country_1',
+]
+
+function localizeBasemapLabels(map: MapLibreMap, locale: Locale) {
+  const localizedName = `name_${locale}`
+  for (const layerId of localizedBasemapLayers) {
+    if (!map.getLayer(layerId)) continue
+    map.setLayoutProperty(layerId, 'text-field', ['coalesce', ['get', localizedName], ['get', 'name:latin'], ['get', 'name']])
+  }
 }
 
 type MappablePlace = Place & { coordinates: Coordinates }
@@ -76,20 +94,24 @@ export default function MapCanvas({ locale, places, center, zoom, selectedId, us
     if (!containerRef.current || mapRef.current) return
     try {
       setWorkerUrl('/maplibre-gl-worker.mjs')
-      const map = new MapLibreMap({ container: containerRef.current, style: mapStyle, center: [center.longitude, center.latitude], zoom, minZoom: 2, maxZoom: 19, attributionControl: false, locale: controlLabels[locale] })
+      const map = new MapLibreMap({ container: containerRef.current, style: mapStyleUrl, center: [center.longitude, center.latitude], zoom, minZoom: 2, maxZoom: 19, attributionControl: false, locale: controlLabels[locale] })
       mapRef.current = map
       map.addControl(new NavigationControl({ showCompass: false }), 'top-right')
-      map.addControl(new AttributionControl({ compact: true }), 'bottom-right')
+      const attributionControl = new AttributionControl({ compact: true })
+      map.addControl(attributionControl, 'bottom-right')
       map.on('load', () => {
         void (async () => {
+          const attributionContainer = containerRef.current?.querySelector<HTMLDetailsElement>('.maplibregl-ctrl-attrib')
+          if (attributionContainer) attributionContainer.open = false
+          localizeBasemapLabels(map, locale)
           await Promise.all(markerTypes.map(async (type) => {
             const image = await map.loadImage(markerIconPath(type))
             if (!map.hasImage(`marker-${type}`)) map.addImage(`marker-${type}`, image.data, { pixelRatio: 3 })
           }))
           if (mapRef.current !== map) return
           map.addSource('places', { type: 'geojson', data: collection(placesRef.current), cluster: true, clusterMaxZoom: 14, clusterRadius: 52 })
-          map.addLayer({ id: 'clusters', type: 'circle', source: 'places', filter: ['has', 'point_count'], paint: { 'circle-color': '#151515', 'circle-radius': ['step', ['get', 'point_count'], 20, 50, 25, 150, 31], 'circle-stroke-width': 3, 'circle-stroke-color': '#FFD400' } })
-          map.addLayer({ id: 'cluster-count', type: 'symbol', source: 'places', filter: ['has', 'point_count'], layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Open Sans Semibold'], 'text-size': 12 }, paint: { 'text-color': '#FFFFFF' } })
+          map.addLayer({ id: 'clusters', type: 'circle', source: 'places', filter: ['has', 'point_count'], paint: { 'circle-color': '#151515', 'circle-radius': ['step', ['get', 'point_count'], 18, 50, 22, 150, 27], 'circle-stroke-width': 3, 'circle-stroke-color': '#FFD400' } })
+          map.addLayer({ id: 'cluster-count', type: 'symbol', source: 'places', filter: ['has', 'point_count'], layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Bold'], 'text-size': 12 }, paint: { 'text-color': '#FFFFFF' } })
           map.addLayer({ id: 'place-markers', type: 'symbol', source: 'places', filter: ['!', ['has', 'point_count']], layout: { 'icon-image': ['concat', 'marker-', ['get', 'markerType']], 'icon-size': ['case', ['==', ['get', 'id'], selectedIdRef.current ?? ''], 1.28, 1], 'icon-anchor': 'bottom', 'icon-allow-overlap': true, 'icon-ignore-placement': true } })
           // A separate 48 px hit area keeps the visual pin compact and reliably
           // tappable without changing the source category icon.
