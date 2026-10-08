@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode, type WheelEvent } from 'react'
-import { ChevronLeft, ChevronRight, Layers3, List, LocateFixed, LoaderCircle, Map as MapIcon, MapPin, Search, Star, UsersRound, X } from 'lucide-react'
+import { Layers3, List, LocateFixed, LoaderCircle, Map as MapIcon, MapPin, Search, Star, UsersRound, X } from 'lucide-react'
 import type { City, Coordinates, Place } from '@/lib/types'
 import type { Locale } from '@/lib/i18n/config'
 import { getDictionary } from '@/lib/i18n/dictionaries'
@@ -26,7 +26,7 @@ type EditorialSelection = 'Incontournables' | 'En famille'
 
 const categoryOrder: PlaceMarkerType[] = ['culture', 'nature', 'activity', 'local', 'bar', 'restaurant', 'nightlife', 'generic']
 
-function FilterRail({ label, previousLabel, nextLabel, children }: { label: string; previousLabel: string; nextLabel: string; children: ReactNode }) {
+function FilterRail({ label, children }: { label: string; children: ReactNode }) {
   const rowRef = useRef<HTMLDivElement>(null)
   const [edges, setEdges] = useState({ left: false, right: false })
   const updateEdges = useCallback(() => {
@@ -73,20 +73,14 @@ function FilterRail({ label, previousLabel, nextLabel, children }: { label: stri
     requestAnimationFrame(() => {
       if (target.getAttribute('aria-pressed') !== 'true') return
       const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      const reveal = () => {
-        if (target.getAttribute('aria-pressed') === 'true') target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', inline: 'nearest', block: 'nearest' })
-      }
-      reveal()
-      window.setTimeout(reveal, reducedMotion ? 0 : 260)
+      target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', inline: 'nearest', block: 'nearest' })
     })
   }
 
   return <div className="filter-rail">
-    {edges.left && <button type="button" className="filter-scroll-button filter-scroll-previous" aria-label={previousLabel} onClick={() => move(-1)}><ChevronLeft size={17} aria-hidden="true" /></button>}
     <div className="filter-scroll-viewport" data-scroll-left={edges.left} data-scroll-right={edges.right}>
       <div ref={rowRef} className="map-controls-row" role="group" aria-label={label} tabIndex={0} onClick={revealActiveChip} onWheel={handleWheel} onKeyDown={handleKeyDown}>{children}</div>
     </div>
-    {edges.right && <button type="button" className="filter-scroll-button filter-scroll-next" aria-label={nextLabel} onClick={() => move(1)}><ChevronRight size={17} aria-hidden="true" /></button>}
   </div>
 }
 
@@ -165,8 +159,8 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
   return <div className={`explore-shell mobile-view-${mobileView}`}><div className="explore-grid">
     <aside className="explore-sidebar" aria-label={t.map.resultsNear}>
       <div className="explore-toolbar"><label className="map-search"><span className="sr-only">{t.map.search}</span><input value={query} onChange={(event) => { setQuery(event.target.value); track('search_performed', { queryLength: event.target.value.length }) }} placeholder={t.map.search}/><Search size={18} aria-hidden="true" /></label>
-        <div className="map-filter-section"><span className="filter-group-label">{t.map.discoverFilters}</span><FilterRail label={t.map.discoverFilters} previousLabel={t.map.previousFilters} nextLabel={t.map.nextFilters}><button type="button" className="chip proximity-chip" aria-pressed={locationActive} onClick={handleNearMe} disabled={locationState === 'loading'}>{locationState === 'loading' ? <LoaderCircle className="spin" size={17} aria-hidden="true" /> : <LocateFixed size={17} aria-hidden="true" />}{locationState === 'loading' ? t.map.locating : t.map.nearMe}</button><button type="button" className="chip editorial-filter-chip" aria-pressed={editorialSelection === 'Incontournables'} onClick={() => toggleEditorial('Incontournables')}><Star size={17} aria-hidden="true" />{t.map.mustSee}</button><button type="button" className="chip editorial-filter-chip" aria-pressed={editorialSelection === 'En famille'} onClick={() => toggleEditorial('En famille')}><UsersRound size={18} aria-hidden="true" />{t.map.family}</button></FilterRail></div>
-        <div className="map-filter-section"><span className="filter-group-label">{t.map.categories}</span><FilterRail label={t.map.categories} previousLabel={t.map.previousFilters} nextLabel={t.map.nextFilters}><button className="chip" type="button" aria-pressed={category === 'all'} onClick={() => setCategory('all')}>{t.map.all}</button>{categories.map((item) => { const icon = markerIconPath(markerTypeForCategoryId(item.id)); return <button key={item.id} type="button" className="chip category-filter-chip" aria-pressed={category === item.id} onClick={() => { setCategory(item.id); track('filter_applied', { category: item.id }) }}><span className="marker-type-icon" style={{ '--marker-icon': `url(${icon})` } as CSSProperties} aria-hidden="true" />{item.name}</button> })}</FilterRail></div>
+        <div className="map-filter-section discovery-filter-section"><span className="filter-group-label">{t.map.discoverFilters}</span><FilterRail label={t.map.discoverFilters}><button type="button" className="chip proximity-chip" aria-pressed={locationActive} onClick={handleNearMe} disabled={locationState === 'loading'}>{locationState === 'loading' ? <LoaderCircle className="spin" size={17} aria-hidden="true" /> : <LocateFixed size={17} aria-hidden="true" />}{locationState === 'loading' ? t.map.locating : t.map.nearMe}</button><button type="button" className="chip editorial-filter-chip" aria-pressed={editorialSelection === 'Incontournables'} onClick={() => toggleEditorial('Incontournables')}><Star size={17} aria-hidden="true" />{t.map.mustSee}</button><button type="button" className="chip editorial-filter-chip" aria-pressed={editorialSelection === 'En famille'} onClick={() => toggleEditorial('En famille')}><UsersRound size={18} aria-hidden="true" />{t.map.family}</button></FilterRail></div>
+        <div className="map-filter-section"><span className="filter-group-label">{t.map.categories}</span><FilterRail label={t.map.categories}><button className="chip" type="button" aria-pressed={category === 'all'} onClick={() => setCategory('all')}>{t.map.all}</button>{categories.map((item) => { const icon = markerIconPath(markerTypeForCategoryId(item.id)); return <button key={item.id} type="button" className="chip category-filter-chip" aria-pressed={category === item.id} onClick={() => { setCategory(item.id); track('filter_applied', { category: item.id }) }}><span className="marker-type-icon" style={{ '--marker-icon': `url(${icon})` } as CSSProperties} aria-hidden="true" />{item.name}</button> })}</FilterRail></div>
         {locationMessage && <div className="notice" role="status">{locationMessage}</div>}
         {locationActive && <span className="sr-only" role="status">{t.map.locationActive}</span>}
         <div className="results-count"><span><span className="mono">{filtered.length}</span> {filtered.length === 1 ? t.common.result : t.common.results}</span>{filtersActive && <button type="button" className="results-reset" onClick={reset}>{t.map.reset}</button>}</div>
