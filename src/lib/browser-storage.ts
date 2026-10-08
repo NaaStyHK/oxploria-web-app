@@ -4,6 +4,7 @@ import type { Coordinates } from '@/lib/types'
 const LOCALE_KEY = 'oxploria-locale'
 const FAVOURITES_KEY = 'oxploria-favourites'
 const PENDING_LOCATION_KEY = 'oxploria-pending-location'
+const ACTIVE_CITY_KEY = 'oxploria-active-city'
 
 export function readLocalePreference(): Locale | null {
   try {
@@ -56,4 +57,17 @@ export function readPendingLocation(): Coordinates | null {
   } catch {
     return null
   }
+}
+
+export function readActiveCityPreference(availableCityIds: string[]): string | null {
+  try {
+    const value = localStorage.getItem(ACTIVE_CITY_KEY)
+    return value && availableCityIds.includes(value) ? value : null
+  } catch {
+    return null
+  }
+}
+
+export function writeActiveCityPreference(cityId: string): void {
+  try { localStorage.setItem(ACTIVE_CITY_KEY, cityId) } catch { /* Storage can be disabled. */ }
 }
