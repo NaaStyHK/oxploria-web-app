@@ -9,5 +9,5 @@ const labels: Record<Locale, { name: string; placeholder: string }> = {
 export function AdSlot({ locale }: { locale: Locale }) {
   if (process.env.NODE_ENV !== 'development') return null
   const label = labels[locale] ?? labels.en
-  return <aside aria-label={label.name} style={{ padding: '1rem', border: '1px dashed var(--line-strong)', borderRadius: 'var(--radius)', color: 'var(--muted)', textAlign: 'center', fontSize: '.8rem' }}>{label.name} · {label.placeholder}</aside>
+  return <aside className="ad-slot" aria-label={label.name}>{label.name} · {label.placeholder}</aside>
 }
