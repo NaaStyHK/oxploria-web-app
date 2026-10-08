@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type WheelEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode, type WheelEvent } from 'react'
 import { ChevronLeft, ChevronRight, Layers3, List, LocateFixed, LoaderCircle, Map as MapIcon, MapPin, Search, Star, UsersRound, X } from 'lucide-react'
 import type { City, Coordinates, Place } from '@/lib/types'
 import type { Locale } from '@/lib/i18n/config'
@@ -67,10 +67,25 @@ function FilterRail({ label, previousLabel, nextLabel, children }: { label: stri
     event.preventDefault()
     move(event.key === 'ArrowLeft' ? -1 : 1)
   }
+  const revealActiveChip = (event: ReactMouseEvent<HTMLDivElement>) => {
+    const target = event.target instanceof Element ? event.target.closest<HTMLButtonElement>('button[aria-pressed]') : null
+    if (!target) return
+    requestAnimationFrame(() => {
+      if (target.getAttribute('aria-pressed') !== 'true') return
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      const reveal = () => {
+        if (target.getAttribute('aria-pressed') === 'true') target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', inline: 'nearest', block: 'nearest' })
+      }
+      reveal()
+      window.setTimeout(reveal, reducedMotion ? 0 : 260)
+    })
+  }
 
-  return <div className="filter-rail" data-scroll-left={edges.left} data-scroll-right={edges.right}>
-    <div ref={rowRef} className="map-controls-row" role="group" aria-label={label} tabIndex={0} onWheel={handleWheel} onKeyDown={handleKeyDown}>{children}</div>
+  return <div className="filter-rail">
     {edges.left && <button type="button" className="filter-scroll-button filter-scroll-previous" aria-label={previousLabel} onClick={() => move(-1)}><ChevronLeft size={17} aria-hidden="true" /></button>}
+    <div className="filter-scroll-viewport" data-scroll-left={edges.left} data-scroll-right={edges.right}>
+      <div ref={rowRef} className="map-controls-row" role="group" aria-label={label} tabIndex={0} onClick={revealActiveChip} onWheel={handleWheel} onKeyDown={handleKeyDown}>{children}</div>
+    </div>
     {edges.right && <button type="button" className="filter-scroll-button filter-scroll-next" aria-label={nextLabel} onClick={() => move(1)}><ChevronRight size={17} aria-hidden="true" /></button>}
   </div>
 }
