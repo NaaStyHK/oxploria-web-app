@@ -123,7 +123,6 @@ p { max-width: 72ch; }
 .hero-map-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
 .hero-map-lines { position: absolute; inset: 0; opacity: .9; }
 .hero-map-copy { position: absolute; inset: auto 1.2rem 1.2rem; display: flex; justify-content: space-between; align-items: end; gap: 1rem; }
-.hero-map-kicker { display: block; margin-bottom: .35rem; color: var(--text-on-dark-muted); font-family: 'Oxploria Mono', monospace; font-size: .78rem; text-transform: uppercase; }
 .hero-promise { font-weight: 760; font-size: clamp(1.15rem, 2.4vw, 1.75rem); max-width: 16ch; line-height: 1.08; }
 
 .section-heading { display: flex; align-items: end; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-5); }
