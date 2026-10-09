@@ -425,6 +425,7 @@ body:has(.explore-shell) .site-footer { display: none; }
 }
 
 @media (max-width: 899px) {
+  .hero-map-card { justify-self: center; width: 100%; max-width: 720px; aspect-ratio: 1.65; }
   .explore-shell { min-height: 0; }
   .explore-grid { grid-template-rows: auto minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); }
   .explore-sidebar { grid-row: 1; grid-column: 1; flex: 0 0 auto; overflow: visible; }
