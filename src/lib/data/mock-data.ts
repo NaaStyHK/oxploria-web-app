@@ -29,7 +29,7 @@ export const cityRecords: CityRecord[] = [
     country: { fr: 'France', es: 'Francia', en: 'France' },
     coordinates: { latitude: 46.1591, longitude: -1.152 },
     zoom: 13.2,
-    image: '/images/barcelona-garden.jpg',
+    image: '/images/la-rochelle-saint-nicolas.jpg',
     description: {
       fr: 'Un port atlantique façonné par ses tours, ses arcades, ses échanges maritimes et son goût farouche pour l’indépendance.',
       es: 'Un puerto atlántico marcado por sus torres, soportales, intercambios marítimos y su firme espíritu independiente.',
