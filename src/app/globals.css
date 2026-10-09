@@ -76,7 +76,8 @@ p { max-width: 72ch; }
 
 .site-header { position: fixed; inset: 0 0 auto; z-index: 100; min-height: var(--header-height); border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 94%, transparent); backdrop-filter: saturate(1.3) blur(14px); }
 .header-inner { min-height: var(--header-height); display: flex; align-items: center; gap: 1rem; }
-.brand { min-height: 44px; display: inline-flex; align-items: center; gap: 0.18rem; font-size: 1.32rem; font-weight: 840; letter-spacing: -0.045em; text-decoration: none; white-space: nowrap; }
+.brand { min-height: 44px; display: inline-flex; align-items: center; flex: 0 0 auto; text-decoration: none; }
+.brand-logo { display: block; width: 120px; height: auto; }
 .brand-mark { width: 26px; height: 30px; display: block; }
 .desktop-nav { display: none; align-items: center; gap: 0.25rem; margin-left: 1.5rem; }
 .nav-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-2); border-radius: var(--radius-pill); text-decoration: none; font-weight: 590; transition: background-color var(--transition-fast), color var(--transition-fast); }
@@ -156,7 +157,7 @@ p { max-width: 72ch; }
 .home-active-city-intro { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .home-active-city-intro .section-kicker { margin-bottom: .35rem; }
 .home-active-city-intro h2 { margin: 0; font-size: clamp(2rem, 4vw, 3.3rem); }
-.home-categories { border-top: 1px solid var(--line); background: var(--paper); }
+.home-categories { padding-bottom: 0; border-top: 1px solid var(--line); background: var(--paper); }
 .section-kicker-light { color: var(--yellow); }
 .home-method { position: relative; isolation: isolate; }
 .home-method > * { position: relative; z-index: 1; }
@@ -166,7 +167,8 @@ p { max-width: 72ch; }
 .home-steps li > svg { width: 44px; height: 44px; padding: .7rem; border-radius: 50%; background: var(--yellow); color: var(--ink); }
 .home-steps strong { display: block; margin-bottom: .1rem; color: var(--white); }
 .home-steps span { color: var(--text-on-dark-muted); font-size: .88rem; line-height: 1.4; }
-.home-guides { padding-bottom: var(--section-space); }
+.home-method-section { padding-block: clamp(var(--space-5), 4vw, var(--space-7)); }
+.home-guides { padding-top: 0; padding-bottom: var(--section-space); }
 
 .place-card { height: 100%; position: relative; display: grid; grid-template-rows: auto 1fr; min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--white); overflow: hidden; box-shadow: var(--shadow-small); transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast); }
 .place-card:hover { border-color: var(--line-strong); transform: translateY(-3px); box-shadow: var(--shadow); }
@@ -367,7 +369,6 @@ body:has(.explore-shell) .site-footer { display: none; }
 .city-nearby-notice { max-width: 680px; margin: 0; background: var(--white); }
 .location-inline-notice { flex-basis: 100%; max-width: 62ch; padding: .75rem .9rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--white) 72%, transparent); font-size: .9rem; font-weight: 600; }
 
-.brand-inverse { color: var(--white); }
 .booking-card { min-height: 140px; display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; padding: var(--space-3); text-decoration: none; }
 .ad-slot { padding: var(--space-3); border: 1px dashed var(--line-strong); border-radius: var(--radius); color: var(--muted); text-align: center; font-size: .8rem; }
 .breadcrumbs ol, .breadcrumbs li { display: contents; }

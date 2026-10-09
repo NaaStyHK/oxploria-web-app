@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import type { Locale } from '@/lib/i18n/config'
 import { route } from '@/lib/routes'
@@ -14,5 +15,5 @@ export function BrandMark({ className = 'brand-mark' }: { className?: string }) 
 }
 
 export function Brand({ locale, inverse = false }: { locale: Locale; inverse?: boolean }) {
-  return <Link href={route.home(locale)} className={`brand${inverse ? ' brand-inverse' : ''}`} aria-label="Oxploria"><span>Oxpl</span><BrandMark /><span>ria</span></Link>
+  return <Link href={route.home(locale)} className="brand"><Image className="brand-logo" src={inverse ? '/brand/oxploria-logo-light.svg' : '/brand/oxploria-logo-dark.svg'} alt="Oxploria" width={120} height={44} priority={!inverse} /></Link>
 }
