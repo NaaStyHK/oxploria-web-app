@@ -3,14 +3,14 @@
 import { useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
 import type { Locale } from '@/lib/i18n/config'
-import type { Place } from '@/lib/types'
+import type { PlaceSummary } from '@/lib/types'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import { matchesPlace } from '@/lib/search'
 import { EmptyState } from '@/components/empty-state'
 import { PlaceCard } from '@/components/place-card'
 import { track } from '@/lib/analytics'
 
-export function SearchExperience({ locale, places }: { locale: Locale; places: Place[] }) {
+export function SearchExperience({ locale, places }: { locale: Locale; places: PlaceSummary[] }) {
   const t = getDictionary(locale)
   const [query, setQuery] = useState('')
   const results = useMemo(() => query.trim() ? places.filter((place) => matchesPlace(place, query)).slice(0, 24) : [], [places, query])

@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode, type WheelEvent } from 'react'
 import { Layers3, List, LocateFixed, LoaderCircle, Map as MapIcon, MapPin, Search, Star, UsersRound, X } from 'lucide-react'
-import type { City, Coordinates, Place } from '@/lib/types'
+import type { City, Coordinates, PlaceSummary } from '@/lib/types'
 import type { Locale } from '@/lib/i18n/config'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import { distanceInKm, formatDistance, hasCoordinates } from '@/lib/geo'
@@ -25,6 +25,7 @@ type LocationState = 'idle' | 'loading' | 'granted' | GeolocationFailure
 type EditorialSelection = 'Incontournables' | 'En famille'
 
 const categoryOrder: PlaceMarkerType[] = ['culture', 'nature', 'activity', 'local', 'bar', 'restaurant', 'nightlife', 'generic']
+const RESULT_BATCH_SIZE = 48
 
 function FilterRail({ label, children }: { label: string; children: ReactNode }) {
   const rowRef = useRef<HTMLDivElement>(null)
@@ -84,7 +85,7 @@ function FilterRail({ label, children }: { label: string; children: ReactNode })
   </div>
 }
 
-export function ExploreExperience({ locale, city, places, initialPosition, initialPlaceId, collectionLabel, requestLocationOnMount = false }: { locale: Locale; city: City; places: Place[]; initialPosition?: Coordinates | null; initialPlaceId?: string; collectionLabel?: string; requestLocationOnMount?: boolean }) {
+export function ExploreExperience({ locale, city, places, initialPosition, initialPlaceId, collectionLabel, requestLocationOnMount = false }: { locale: Locale; city: City; places: PlaceSummary[]; initialPosition?: Coordinates | null; initialPlaceId?: string; collectionLabel?: string; requestLocationOnMount?: boolean }) {
   const t = getDictionary(locale)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<string>('all')
@@ -96,6 +97,7 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
   const [mapError, setMapError] = useState(false)
   const [mobileView, setMobileView] = useState<'map' | 'list'>('map')
   const [recenterRequest, setRecenterRequest] = useState(0)
+  const [visibility, setVisibility] = useState({ key: '', limit: RESULT_BATCH_SIZE })
   const categories = useMemo(() => [...new Map(places.map((place) => [place.category.id, { id: place.category.id, name: place.categoryName }])).values()]
     .sort((a, b) => {
       const typeDifference = categoryOrder.indexOf(markerTypeForCategoryId(a.id)) - categoryOrder.indexOf(markerTypeForCategoryId(b.id))
@@ -115,6 +117,10 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
   const nearbyCountLabel = locationActive && filtered.length > 0
     ? t.map.nearbyResults.replace('{count}', String(filtered.length))
     : resultCountLabel
+  const visibilityKey = `${category}|${editorialSelection ?? ''}|${locationActive}|${query}`
+  const visibleLimit = visibility.key === visibilityKey ? visibility.limit : RESULT_BATCH_SIZE
+  const visiblePlaces = filtered.slice(0, visibleLimit)
+  const showMore = () => setVisibility({ key: visibilityKey, limit: visibleLimit + RESULT_BATCH_SIZE })
 
   const requestLocation = useCallback(async () => {
     track('location_requested'); setLocationState('loading')
@@ -163,9 +169,9 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
         <div className="map-filter-section"><span className="filter-group-label">{t.map.categories}</span><FilterRail label={t.map.categories}><button className="chip" type="button" aria-pressed={category === 'all'} onClick={() => setCategory('all')}>{t.map.all}</button>{categories.map((item) => { const icon = markerIconPath(markerTypeForCategoryId(item.id)); return <button key={item.id} type="button" className="chip category-filter-chip" aria-pressed={category === item.id} onClick={() => { setCategory(item.id); track('filter_applied', { category: item.id }) }}><span className="marker-type-icon" style={{ '--marker-icon': `url(${icon})` } as CSSProperties} aria-hidden="true" />{item.name}</button> })}</FilterRail></div>
         {locationMessage && <div className="notice" role="status">{locationMessage}</div>}
         {locationActive && <span className="sr-only" role="status">{t.map.locationActive}</span>}
-        <div className="results-count"><span><span className="mono">{filtered.length}</span> {filtered.length === 1 ? t.common.result : t.common.results}</span>{filtersActive && <button type="button" className="results-reset" onClick={reset}>{t.map.reset}</button>}</div>
+        <div className="results-count"><span aria-live="polite" aria-atomic="true"><span className="mono">{filtered.length}</span> {filtered.length === 1 ? t.common.result : t.common.results}</span>{filtersActive && <button type="button" className="results-reset" onClick={reset}>{t.map.reset}</button>}</div>
       </div>
-      <div className="explore-list">{filtered.length ? filtered.map((place, index) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} imagePreload={index === 0} distance={locationActive && userPosition && place.coordinates ? formatDistance(distanceInKm(userPosition, place.coordinates), locale) : undefined} />) : <EmptyState title={t.map.noPlaces} body={t.map.noPlacesHelp} action={<button type="button" className="button button-dark" onClick={reset}>{t.map.reset}</button>} />}</div>
+      <div className="explore-list">{filtered.length ? <>{visiblePlaces.map((place, index) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} imagePreload={index === 0} distance={locationActive && userPosition && place.coordinates ? formatDistance(distanceInKm(userPosition, place.coordinates), locale) : undefined} />)}{visibleLimit < filtered.length && <button type="button" className="button button-light directory-more" onClick={showMore}>{t.common.showMore}</button>}</> : <EmptyState title={t.map.noPlaces} body={t.map.noPlacesHelp} action={<button type="button" className="button button-dark" onClick={reset}>{t.map.reset}</button>} />}</div>
     </aside>
     <section className="map-panel" aria-label={t.map.title}>
       {mapError ? <div className="map-canvas"><div className="map-state"><Layers3 size={30} /><h3>{t.map.mapUnavailable}</h3><p>{t.map.mapUnavailableHelp}</p></div></div> : <MapCanvas locale={locale} places={mappablePlaces} center={city.coordinates} zoom={city.zoom} selectedId={validSelectedId} userPosition={userPosition} recenterRequest={recenterRequest} label={`${t.map.title}: ${city.name}`} onSelect={selectPlace} onError={() => setMapError(true)} />}
@@ -174,8 +180,8 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
       {selected && <DraggableSheet className="place-preview" dismissLabel={t.map.closePreview} onDismiss={() => setSelectedId(undefined)}><div className="place-preview-image"><SafeImage src={selected.images[0] || ''} alt="" fill preload sizes="112px" fallbackLabel={t.places.photoUnavailable} /></div><div className="place-preview-copy"><span className="place-tag">{selected.categoryName}</span><h3>{selected.name}</h3><div className="muted">{locationActive && userPosition && selected.coordinates ? `${formatDistance(distanceInKm(userPosition, selected.coordinates), locale)} · ` : ''}{selected.style}</div>{selected.address && <div className="place-preview-address"><MapPin size={15} aria-hidden="true"/><span>{selected.address}</span></div>}<Link className="button button-primary button-small" href={route.place(locale, city.slug, selected.slug)}>{t.map.discover}</Link></div><button type="button" className="icon-button preview-close" aria-label={t.map.closePreview} onClick={() => setSelectedId(undefined)}><X size={18}/></button></DraggableSheet>}
     </section>
     <section className="mobile-list-view" aria-label={t.map.resultsNear} aria-hidden={mobileView === 'map'}>
-      <div className="mobile-list-heading"><span role={locationActive ? 'status' : undefined}>{nearbyCountLabel}</span><button type="button" className="button button-light button-small" onClick={() => setMobileView('map')}><MapIcon size={18} aria-hidden="true" /> {t.map.map}</button></div>
-      <div className="explore-list mobile-list-scroll" tabIndex={mobileView === 'list' ? 0 : -1} aria-label={nearbyCountLabel}>{mobileView === 'list' && (filtered.length ? filtered.map((place, index) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} imagePreload={index === 0} distance={locationActive && userPosition && place.coordinates ? formatDistance(distanceInKm(userPosition, place.coordinates), locale) : undefined} />) : <EmptyState title={t.map.noPlaces} body={t.map.noPlacesHelp} action={<button type="button" className="button button-dark" onClick={reset}>{t.map.reset}</button>} />)}</div>
+      <div className="mobile-list-heading"><span aria-live="polite" aria-atomic="true">{nearbyCountLabel}</span><button type="button" className="button button-light button-small" onClick={() => setMobileView('map')}><MapIcon size={18} aria-hidden="true" /> {t.map.map}</button></div>
+      <div className="explore-list mobile-list-scroll" tabIndex={mobileView === 'list' ? 0 : -1} aria-label={nearbyCountLabel}>{mobileView === 'list' && (filtered.length ? <>{visiblePlaces.map((place, index) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} imagePreload={index === 0} distance={locationActive && userPosition && place.coordinates ? formatDistance(distanceInKm(userPosition, place.coordinates), locale) : undefined} />)}{visibleLimit < filtered.length && <button type="button" className="button button-light directory-more" onClick={showMore}>{t.common.showMore}</button>}</> : <EmptyState title={t.map.noPlaces} body={t.map.noPlacesHelp} action={<button type="button" className="button button-dark" onClick={reset}>{t.map.reset}</button>} />)}</div>
     </section>
   </div></div>
 }

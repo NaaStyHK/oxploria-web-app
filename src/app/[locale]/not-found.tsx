@@ -11,5 +11,5 @@ export default function LocaleNotFound() {
   const params = useParams<{ locale?: string }>()
   const locale = params.locale && isLocale(params.locale) ? params.locale : 'en'
   const t = getDictionary(locale)
-  return <main className="page-shell"><section className="section"><div className="container"><div className="empty-state"><Compass size={38}/><h1 className="error-title">{t.errors.notFoundTitle}</h1><p>{t.errors.notFoundBody}</p><Link className="button button-primary" href={route.home(locale)}>{t.errors.home}</Link></div></div></section></main>
+  return <main id="main-content" className="page-shell"><section className="section"><div className="container"><div className="empty-state"><Compass size={38}/><h1 className="error-title">{t.errors.notFoundTitle}</h1><p>{t.errors.notFoundBody}</p><Link className="button button-primary" href={route.home(locale)}>{t.errors.home}</Link></div></div></section></main>
 }

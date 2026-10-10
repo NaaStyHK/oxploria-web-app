@@ -1,14 +1,14 @@
 import Link from 'next/link'
 import { ArrowUpRight, MapPin } from 'lucide-react'
 import type { Locale } from '@/lib/i18n/config'
-import type { Place } from '@/lib/types'
+import type { PlaceSummary } from '@/lib/types'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import { getCityById } from '@/lib/data/mock-repository'
 import { route } from '@/lib/routes'
 import { FavouriteButton } from '@/components/favourite-button'
 import { SafeImage } from '@/components/safe-image'
 
-export function PlaceCard({ place, locale, distance, showCity = true, imagePreload = false }: { place: Place; locale: Locale; distance?: string; showCity?: boolean; imagePreload?: boolean }) {
+export function PlaceCard({ place, locale, distance, showCity = true, imagePreload = false }: { place: PlaceSummary; locale: Locale; distance?: string; showCity?: boolean; imagePreload?: boolean }) {
   const t = getDictionary(locale)
   const city = getCityById(place.cityId, locale)
   if (!city) return null

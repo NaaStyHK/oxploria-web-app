@@ -54,12 +54,12 @@ export default async function CityPage({ params }: Props) {
     if (!page) notFound()
     if (page === 'guides') {
       const guides = mockRepository.listGuides(value)
-      return <main className="page-shell"><section className="page-hero"><div className="container"><h1>{t.guides.title}</h1><p>{t.guides.intro}</p></div></section><section className="section-tight"><div className="container"><div className="guide-grid">{guides.map((guide) => { const guideCity = getCityById(guide.cityId, value); return guideCity ? <GuideCard key={guide.id} guide={guide} city={guideCity} locale={value}/> : null })}</div></div></section></main>
+      return <main id="main-content" className="page-shell"><section className="page-hero"><div className="container"><h1>{t.guides.title}</h1><p>{t.guides.intro}</p></div></section><section className="section-tight"><div className="container"><div className="guide-grid">{guides.map((guide) => { const guideCity = getCityById(guide.cityId, value); return guideCity ? <GuideCard key={guide.id} guide={guide} city={guideCity} locale={value}/> : null })}</div></div></section></main>
     }
-    if (page === 'search') return <main className="page-shell"><section className="page-hero"><div className="container"><h1>{t.search.title}</h1><p>{t.search.description}</p></div></section><section className="section-tight"><div className="container"><SearchExperience locale={value} places={await firebasePlaceRepository.listPlaces(value)}/></div></section></main>
+    if (page === 'search') return <main id="main-content" className="page-shell"><section className="page-hero"><div className="container"><h1>{t.search.title}</h1><p>{t.search.description}</p></div></section><section className="section-tight"><div className="container"><SearchExperience locale={value} places={await firebasePlaceRepository.listPlaceSummaries(value)}/></div></section></main>
     return <LegalPage locale={value} page={page}/>
   }
-  const places = await firebasePlaceRepository.listPlaces(value, city.id)
+  const places = await firebasePlaceRepository.listPlaceSummaries(value, city.id)
   const guides = mockRepository.listGuides(value, city.id)
   const categories = [...new Map(places.map((place) => [place.category.id, place.category])).values()]
   const mustSees = places.filter((place) => hasEditorialCollection(place, 'Incontournables')).slice(0, 8)
@@ -67,7 +67,7 @@ export default async function CityPage({ params }: Props) {
   const goingOut = places.filter(isGoingOutPlace).slice(0, 8)
   const allPlacesAction = { href: route.places(value, city.slug), label: t.common.viewAll }
   const coordinatesLabel = `${Math.abs(city.coordinates.latitude).toFixed(4)}° ${city.coordinates.latitude >= 0 ? 'N' : 'S'} · ${Math.abs(city.coordinates.longitude).toFixed(4)}° ${city.coordinates.longitude >= 0 ? 'E' : 'W'}`
-  return <main>
+  return <main id="main-content">
     <section className="city-hero"><SafeImage src={city.image} alt="" fill preload sizes="100vw" fallbackLabel={t.places.photoUnavailable} /><div className="container city-hero-content"><span className="mono">{city.country} · {places.length} {t.city.places}</span><h1>{city.name}</h1><p>{city.description}</p><nav className="city-mode-switch" aria-label={t.city.viewNavigation}><Link href={route.city(value, city.slug)} aria-current="page"><Compass size={18} aria-hidden="true" />{t.nav.explore}</Link><Link href={route.map(value, city.slug)}><MapPin size={18} aria-hidden="true" />{t.nav.map}</Link></nav><div className="page-hero-actions"><Link className="button button-primary" href="#discover"><Compass size={19} aria-hidden="true" />{t.city.startExploring}</Link><Link className="button button-light" href={route.places(value, city.slug)}>{t.places.title}<ArrowRight size={18} aria-hidden="true" /></Link></div></div></section>
     <section className="explorer-intro" id="discover"><div className="container"><h2>{t.city.exploreTitle.replace('{city}', city.name)}</h2><p>{t.city.exploreBody}</p><div className="explorer-coordinate"><span className="explorer-route-line" aria-hidden="true"><span className="route-dot" /></span><span className="mono">{coordinatesLabel}</span><Link href={route.map(value, city.slug)}>{t.city.exploreMap}<ArrowRight size={16} aria-hidden="true" /></Link></div></div></section>
     <CityNearby locale={value} city={city} places={places}/>

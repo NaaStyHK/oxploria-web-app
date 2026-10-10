@@ -108,6 +108,23 @@ export interface Place {
   bookingOffers: BookingOffer[]
 }
 
+export interface PlaceSummary {
+  id: string
+  cityId: string
+  slug: string
+  name: string
+  style: string
+  address: string
+  coordinates: Coordinates | null
+  category: Category
+  categoryName: string
+  categorySlug: string
+  collections: string[]
+  /** The first and only entry is the primary image used by cards and previews. */
+  images: string[]
+  featured: boolean
+}
+
 export interface GuideSection {
   title: string
   body: string
@@ -179,6 +196,7 @@ export interface PlaceRepository {
 
 export interface PublicPlaceRepository {
   listPlaces(locale: Locale, cityId?: string): Promise<Place[]>
+  listPlaceSummaries(locale: Locale, cityId?: string): Promise<PlaceSummary[]>
   getPlaceById(id: string, locale: Locale, cityId: string): Promise<Place | null>
   getPlaceBySlug(slug: string, locale: Locale, cityId: string): Promise<Place | null>
 }

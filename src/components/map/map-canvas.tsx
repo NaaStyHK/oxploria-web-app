@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { AttributionControl, GeoJSONSource, Map as MapLibreMap, NavigationControl, setWorkerUrl, type MapLayerMouseEvent } from 'maplibre-gl'
 import type { FeatureCollection, Point } from 'geojson'
-import type { Coordinates, Place } from '@/lib/types'
+import type { Coordinates, PlaceSummary } from '@/lib/types'
 import type { Locale } from '@/lib/i18n/config'
 import { markerIconPath, markerTypes, resolvePlaceMarkerType, type PlaceMarkerType } from '@/lib/place-taxonomy'
 
@@ -14,6 +14,14 @@ const controlLabels: Record<Locale, Record<string, string>> = {
 }
 
 const mapStyleUrl = '/map/oxploria-light.json'
+const mapColors = {
+  ink: '#151515',
+  yellow: '#FFD400',
+  white: '#FFFFFF',
+  userBlue: '#176BDE',
+  userHalo: 'rgba(23,107,222,.18)',
+  userRing: 'rgba(21,21,21,.28)',
+} as const
 const localizedBasemapLayers = [
   'waterway_line_label',
   'water_name_point_label',
@@ -39,7 +47,7 @@ function localizeBasemapLabels(map: MapLibreMap, locale: Locale) {
   }
 }
 
-type MappablePlace = Place & { coordinates: Coordinates }
+type MappablePlace = PlaceSummary & { coordinates: Coordinates }
 
 function collection(places: MappablePlace[]): FeatureCollection<Point, { id: string; name: string; markerType: PlaceMarkerType }> {
   return { type: 'FeatureCollection', features: places.map((place) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [place.coordinates.longitude, place.coordinates.latitude] }, properties: { id: place.id, name: place.name, markerType: resolvePlaceMarkerType(place) } })) }
@@ -55,9 +63,9 @@ function showUserPosition(map: MapLibreMap, position: Coordinates) {
   if (source) source.setData(data)
   else {
     map.addSource('user-position', { type: 'geojson', data })
-    map.addLayer({ id: 'user-position-halo', type: 'circle', source: 'user-position', paint: { 'circle-radius': 17, 'circle-color': 'rgba(23,107,222,.18)' } })
-    map.addLayer({ id: 'user-position-ring', type: 'circle', source: 'user-position', paint: { 'circle-radius': 10, 'circle-color': '#FFFFFF', 'circle-stroke-width': 1, 'circle-stroke-color': 'rgba(21,21,21,.28)' } })
-    map.addLayer({ id: 'user-position-dot', type: 'circle', source: 'user-position', paint: { 'circle-radius': 6, 'circle-color': '#176BDE', 'circle-stroke-width': 1.5, 'circle-stroke-color': '#FFFFFF' } })
+    map.addLayer({ id: 'user-position-halo', type: 'circle', source: 'user-position', paint: { 'circle-radius': 17, 'circle-color': mapColors.userHalo } })
+    map.addLayer({ id: 'user-position-ring', type: 'circle', source: 'user-position', paint: { 'circle-radius': 10, 'circle-color': mapColors.white, 'circle-stroke-width': 1, 'circle-stroke-color': mapColors.userRing } })
+    map.addLayer({ id: 'user-position-dot', type: 'circle', source: 'user-position', paint: { 'circle-radius': 6, 'circle-color': mapColors.userBlue, 'circle-stroke-width': 1.5, 'circle-stroke-color': mapColors.white } })
   }
 }
 
@@ -110,12 +118,12 @@ export default function MapCanvas({ locale, places, center, zoom, selectedId, us
           }))
           if (mapRef.current !== map) return
           map.addSource('places', { type: 'geojson', data: collection(placesRef.current), cluster: true, clusterMaxZoom: 14, clusterRadius: 52 })
-          map.addLayer({ id: 'clusters', type: 'circle', source: 'places', filter: ['has', 'point_count'], paint: { 'circle-color': '#151515', 'circle-radius': ['step', ['get', 'point_count'], 18, 50, 22, 150, 27], 'circle-stroke-width': 3, 'circle-stroke-color': '#FFD400' } })
-          map.addLayer({ id: 'cluster-count', type: 'symbol', source: 'places', filter: ['has', 'point_count'], layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Bold'], 'text-size': 12 }, paint: { 'text-color': '#FFFFFF' } })
+          map.addLayer({ id: 'clusters', type: 'circle', source: 'places', filter: ['has', 'point_count'], paint: { 'circle-color': mapColors.ink, 'circle-radius': ['step', ['get', 'point_count'], 18, 50, 22, 150, 27], 'circle-stroke-width': 3, 'circle-stroke-color': mapColors.yellow } })
+          map.addLayer({ id: 'cluster-count', type: 'symbol', source: 'places', filter: ['has', 'point_count'], layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Bold'], 'text-size': 12 }, paint: { 'text-color': mapColors.white } })
           map.addLayer({ id: 'place-markers', type: 'symbol', source: 'places', filter: ['!', ['has', 'point_count']], layout: { 'icon-image': ['concat', 'marker-', ['get', 'markerType']], 'icon-size': ['case', ['==', ['get', 'id'], selectedIdRef.current ?? ''], 1.28, 1], 'icon-anchor': 'bottom', 'icon-allow-overlap': true, 'icon-ignore-placement': true } })
           // A separate 48 px hit area keeps the visual pin compact and reliably
           // tappable without changing the source category icon.
-          map.addLayer({ id: 'place-hit-areas', type: 'circle', source: 'places', filter: ['!', ['has', 'point_count']], paint: { 'circle-color': '#151515', 'circle-radius': 24, 'circle-opacity': 0.01 } })
+          map.addLayer({ id: 'place-hit-areas', type: 'circle', source: 'places', filter: ['!', ['has', 'point_count']], paint: { 'circle-color': mapColors.ink, 'circle-radius': 24, 'circle-opacity': 0.01 } })
           map.on('click', async (event: MapLayerMouseEvent) => {
             const { x, y } = event.point
             const nearbyPlaces = map.queryRenderedFeatures([[x - 24, y - 36], [x + 24, y + 24]], { layers: ['place-markers'] })

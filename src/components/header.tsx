@@ -22,6 +22,8 @@ export function Header({ locale }: { locale: Locale }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const languageRef = useRef<HTMLDivElement>(null)
   const languageButtonRef = useRef<HTMLButtonElement>(null)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const mobileNavigationRef = useRef<HTMLDivElement>(null)
   useMetadataAlternateLinks(languageRef, pathname, languageOpen)
   const cities = mockRepository.listCities(locale)
   const barcelona = cities[0]
@@ -40,9 +42,14 @@ export function Header({ locale }: { locale: Locale }) {
       if (!languageRef.current?.contains(event.target as Node)) setLanguageOpen(false)
     }
     const closeWithKeyboard = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && languageOpen) {
-        setLanguageOpen(false)
-        languageButtonRef.current?.focus()
+      if (event.key === 'Escape') {
+        if (languageOpen) {
+          setLanguageOpen(false)
+          languageButtonRef.current?.focus()
+        } else if (menuOpen) {
+          setMenuOpen(false)
+          menuButtonRef.current?.focus()
+        }
       }
     }
     document.addEventListener('mousedown', close)
@@ -51,7 +58,12 @@ export function Header({ locale }: { locale: Locale }) {
       document.removeEventListener('mousedown', close)
       document.removeEventListener('keydown', closeWithKeyboard)
     }
-  }, [languageOpen])
+  }, [languageOpen, menuOpen])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    mobileNavigationRef.current?.querySelector<HTMLAnchorElement>('a')?.focus()
+  }, [menuOpen])
 
   return (
     <header className="site-header">
@@ -68,10 +80,10 @@ export function Header({ locale }: { locale: Locale }) {
               {locales.map((target) => <li key={target}><Link href={translatePathname(pathname, target)} hrefLang={target} data-locale-target={target} prefetch={false} onClick={(event) => { const alternate = metadataAlternatePath(target); if (alternate && alternate !== event.currentTarget.getAttribute('href')) { event.preventDefault(); window.location.assign(alternate) } writeLocalePreference(target); setLanguageOpen(false); track('language_changed', { from: locale, to: target }) }}>{getDictionary(target).localeName}<span className="mono">{target.toUpperCase()}</span></Link></li>)}
             </ul>}
           </div>
-          <button className="menu-button" type="button" aria-expanded={menuOpen} aria-controls="mobile-navigation" aria-label={menuOpen ? t.nav.close : t.nav.menu} onClick={() => setMenuOpen((value) => !value)}>{menuOpen ? <X size={21} aria-hidden="true" /> : <Menu size={21} aria-hidden="true" />}</button>
+          <button ref={menuButtonRef} className="menu-button" type="button" aria-expanded={menuOpen} aria-controls="mobile-navigation" aria-label={menuOpen ? t.nav.close : t.nav.menu} onClick={() => setMenuOpen((value) => !value)}>{menuOpen ? <X size={21} aria-hidden="true" /> : <Menu size={21} aria-hidden="true" />}</button>
         </div>
       </div>
-      {menuOpen && <div className="mobile-menu" id="mobile-navigation"><nav aria-label={t.nav.menu}>{mobileLinks.map((link) => <Link key={link.href} className="nav-link" href={link.href} aria-current={pathname === link.href ? 'page' : undefined} onClick={() => setMenuOpen(false)}>{link.label}</Link>)}</nav></div>}
+      {menuOpen && <div ref={mobileNavigationRef} className="mobile-menu" id="mobile-navigation"><nav aria-label={t.nav.menu}>{mobileLinks.map((link) => <Link key={link.href} className="nav-link" href={link.href} aria-current={pathname === link.href ? 'page' : undefined} onClick={() => setMenuOpen(false)}>{link.label}</Link>)}</nav></div>}
     </header>
   )
 }

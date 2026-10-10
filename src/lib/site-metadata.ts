@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from 'next'
+import { siteUrlFromEnvironment } from '@/lib/site-url'
 
 export const siteMetadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.oxploria.com'),
+  metadataBase: new URL(siteUrlFromEnvironment()),
   applicationName: 'Oxploria',
   icons: { icon: '/favicon.ico', apple: '/apple-touch-icon.png' },
 }

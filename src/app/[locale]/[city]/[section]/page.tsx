@@ -4,7 +4,7 @@ import { MapPin } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { ExploreExperience } from '@/components/map/explore-experience'
 import { GuideCard } from '@/components/guide-card'
-import { PlaceCard } from '@/components/place-card'
+import { PlacesDirectory } from '@/components/places-directory'
 import { cityRecords } from '@/lib/data/mock-data'
 import { mockRepository } from '@/lib/data/mock-repository'
 import { firebasePlaceRepository } from '@/lib/data/firebase-place-repository'
@@ -55,19 +55,19 @@ export default async function CitySectionPage({ params, searchParams }: Props) {
     const query = await searchParams
     const initialPosition = query.lat && query.lng ? parseFirebaseCoordinates(`${query.lat}, ${query.lng}`) : null
     const guide = query.guide ? mockRepository.listGuides(value, city.id).find((item) => item.id === query.guide) : null
-    const cityPlaces = await firebasePlaceRepository.listPlaces(value, city.id)
+    const cityPlaces = await firebasePlaceRepository.listPlaceSummaries(value, city.id)
     const guidePlaceIds = guide ? resolveGuidePlaceIds(guide, cityPlaces) : []
     const initialPlaceId = query.place ?? guidePlaceIds[0]
     const mapPlaces = guide ? cityPlaces.filter((place) => guidePlaceIds.includes(place.id)) : cityPlaces
-    return <main><ExploreExperience locale={value} city={city} places={mapPlaces} initialPosition={initialPosition} initialPlaceId={initialPlaceId} collectionLabel={guide?.title} requestLocationOnMount={query.locate === '1'} /></main>
+    return <main id="main-content"><h1 className="sr-only">{t.map.touristTitle.replace('{city}', city.name)}</h1><ExploreExperience locale={value} city={city} places={mapPlaces} initialPosition={initialPosition} initialPlaceId={initialPlaceId} collectionLabel={guide?.title} requestLocationOnMount={query.locate === '1'} /></main>
   }
   if (section === segments.places[value]) {
-    const places = await firebasePlaceRepository.listPlaces(value, city.id)
-    return <main className="page-shell"><section className="page-hero"><div className="container"><h1>{t.places.title}<br/>{city.name}</h1><p>{city.description}</p><div className="page-hero-actions"><Link className="button button-primary" href={route.map(value, city.slug)}><MapPin size={19}/>{t.city.exploreMap}</Link></div></div></section><section className="section-tight"><div className="container"><div className="place-grid">{places.map((place) => <PlaceCard key={place.id} place={place} locale={value} showCity={false}/>)}</div></div></section></main>
+    const places = await firebasePlaceRepository.listPlaceSummaries(value, city.id)
+    return <main id="main-content" className="page-shell"><section className="page-hero"><div className="container"><h1>{t.places.title}<br/>{city.name}</h1><p>{city.description}</p><div className="page-hero-actions"><Link className="button button-primary" href={route.map(value, city.slug)}><MapPin size={19}/>{t.city.exploreMap}</Link></div></div></section><section className="section-tight"><div className="container"><PlacesDirectory locale={value} places={places} /></div></section></main>
   }
   if (section === segments.guides[value]) {
     const guides = mockRepository.listGuides(value, city.id)
-    return <main className="page-shell"><section className="page-hero"><div className="container"><h1>{t.guides.title}<br/>{city.name}</h1><p>{t.guides.intro}</p></div></section><section className="section-tight"><div className="container"><div className="guide-grid">{guides.map((guide) => <GuideCard key={guide.id} guide={guide} city={city} locale={value}/>)}</div></div></section></main>
+    return <main id="main-content" className="page-shell"><section className="page-hero"><div className="container"><h1>{t.guides.title}<br/>{city.name}</h1><p>{t.guides.intro}</p></div></section><section className="section-tight"><div className="container"><div className="guide-grid">{guides.map((guide) => <GuideCard key={guide.id} guide={guide} city={city} locale={value}/>)}</div></div></section></main>
   }
   notFound()
 }

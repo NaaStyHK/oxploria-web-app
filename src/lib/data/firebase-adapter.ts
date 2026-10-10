@@ -26,8 +26,8 @@ function translated(raw: RawFirebasePlace, locale: Locale, field: keyof typeof f
 function localizedValues(raw: RawFirebasePlace, field: keyof typeof fieldLegacy): Localized { return { fr: translated(raw, 'fr', field), es: translated(raw, 'es', field), en: translated(raw, 'en', field) } }
 
 function stringList(value: unknown): string[] { if (Array.isArray(value)) return value.map(cleanString).filter(Boolean); const item = cleanString(value); return item ? [item] : [] }
-function safeHttpUrl(value: unknown): string | undefined { const candidate = cleanString(value); if (!candidate) return undefined; try { const url = new URL(/^https?:\/\//i.test(candidate) ? candidate : `https://${candidate}`); return ['http:', 'https:'].includes(url.protocol) ? url.toString() : undefined } catch { return undefined } }
-function safeImageUrl(value: unknown): string | undefined {
+export function safeHttpUrl(value: unknown): string | undefined { const candidate = cleanString(value); if (!candidate) return undefined; try { const url = new URL(/^https?:\/\//i.test(candidate) ? candidate : `https://${candidate}`); return ['http:', 'https:'].includes(url.protocol) ? url.toString() : undefined } catch { return undefined } }
+export function safeImageUrl(value: unknown): string | undefined {
   const candidate = cleanString(value)
   if (!candidate) return undefined
   try {

@@ -1,4 +1,4 @@
-import type { Guide, Place } from '@/lib/types'
+import type { Guide } from '@/lib/types'
 import { placeRecords } from '@/lib/data/mock-data'
 import { slugify } from '@/lib/slug'
 
@@ -10,7 +10,9 @@ const referenceAliases: Record<string, string[]> = {
   'lr-grosse-horloge': ['La Grosse Horloge', 'Grosse Horloge'],
 }
 
-export function resolveGuidePlaceIds(guide: Guide, places: Place[]): string[] {
+type GuidePlace = { id: string; name: string }
+
+export function resolveGuidePlaceIds(guide: Guide, places: GuidePlace[]): string[] {
   const resolved = guide.placeIds.flatMap((reference) => {
     if (places.some((place) => place.id === reference)) return [reference]
     const legacy = placeRecords.find((place) => place.id === reference)
@@ -20,7 +22,7 @@ export function resolveGuidePlaceIds(guide: Guide, places: Place[]): string[] {
   return [...new Set(resolved)]
 }
 
-export function resolveGuidePlaces(guide: Guide, places: Place[]): Place[] {
+export function resolveGuidePlaces<T extends GuidePlace>(guide: Guide, places: T[]): T[] {
   const ids = resolveGuidePlaceIds(guide, places)
-  return ids.map((id) => places.find((place) => place.id === id)).filter((place): place is Place => Boolean(place))
+  return ids.map((id) => places.find((place) => place.id === id)).filter((place): place is T => Boolean(place))
 }

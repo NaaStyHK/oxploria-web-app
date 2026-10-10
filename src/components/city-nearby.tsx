@@ -2,7 +2,7 @@
 
 import { LoaderCircle, LocateFixed } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import type { City, Coordinates, Place } from '@/lib/types'
+import type { City, Coordinates, PlaceSummary } from '@/lib/types'
 import type { Locale } from '@/lib/i18n/config'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import { distanceInKm, formatDistance, hasCoordinates } from '@/lib/geo'
@@ -12,7 +12,7 @@ import { requestCurrentPosition, type GeolocationFailure } from '@/lib/browser-g
 
 type LocationState = 'idle' | 'loading' | 'granted' | GeolocationFailure
 
-export function CityNearby({ locale, city, places }: { locale: Locale; city: City; places: Place[] }) {
+export function CityNearby({ locale, city, places }: { locale: Locale; city: City; places: PlaceSummary[] }) {
   const t = getDictionary(locale)
   const [position, setPosition] = useState<Coordinates | null>(null)
   const [state, setState] = useState<LocationState>('idle')

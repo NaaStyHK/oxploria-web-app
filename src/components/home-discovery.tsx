@@ -15,13 +15,13 @@ import { getDictionary } from '@/lib/i18n/dictionaries'
 import type { Locale } from '@/lib/i18n/config'
 import { markerIconPath, markerTypeForCategoryId } from '@/lib/place-taxonomy'
 import { route } from '@/lib/routes'
-import type { Category, City, Guide, Place } from '@/lib/types'
+import type { Category, City, Guide, PlaceSummary } from '@/lib/types'
 
 export interface HomeCityBundle {
   city: City
   count: number
-  mustSees: Place[]
-  family: Place[]
+  mustSees: PlaceSummary[]
+  family: PlaceSummary[]
   categories: Category[]
 }
 
@@ -56,7 +56,7 @@ export function HomeDiscovery({ locale, cityBundles, guides }: { locale: Locale;
   }
   const sectionAction = () => <Link className="discovery-action" href={route.places(locale, city.slug)}>{t.common.viewAll}<ArrowRight size={17} aria-hidden="true" /></Link>
 
-  return <main>
+  return <main id="main-content">
     <section className="hero"><div className="container hero-grid">
       <div className="hero-content"><span className="hero-eyebrow"><Compass size={17} aria-hidden="true" />{t.home.eyebrow}</span><h1 className="hero-title">{t.home.title}</h1><p className="hero-copy">{t.home.intro}</p><div className="hero-benefits" aria-label={t.home.benefitsLabel}><span><Map size={17} aria-hidden="true" />{t.home.benefitMap}</span><span><MapPin size={17} aria-hidden="true" />{t.home.benefitPlaces}</span><span><BookOpenText size={17} aria-hidden="true" />{t.home.benefitStories}</span></div><div className="hero-actions"><HomeLocationButton locale={locale} cities={cityBundles.map(({ city: item }) => item)} label={t.home.nearMe} locatingLabel={t.map.locating} /><Link className="button button-light" href="#cities" onClick={scrollToCities}>{t.home.chooseCity}<ArrowRight size={18} aria-hidden="true" /></Link></div></div>
       <Link className="hero-map-card" href="#cities" aria-label={`${t.home.chooseCity}: ${t.home.citiesTitle}`} onClick={scrollToCities}><svg className="hero-map-lines" viewBox="0 0 520 430" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path d="M-30 108 94 85l52 45 88-12 35-69 112 29 48 80 123-22M-20 294l125-28 41-93 108 75 89-49 58 80 140-34M85-20l39 109-33 103 78 96-30 164M317-20l-48 69 23 129 51 76-32 198M451-20l-22 122 41 103-29 127 42 120" fill="none" stroke="var(--line-on-dark)" strokeWidth="2"/><path d="M48 350c65-45 64-137 134-157 82-23 92 53 152 20 46-26 41-104 129-123" fill="none" stroke="var(--yellow)" strokeWidth="6" strokeLinecap="round"/><g transform="translate(463 51)"><path d="M0-25c-14 0-25 11-25 25 0 17 25 39 25 39S25 17 25 0C25-14 14-25 0-25Z" fill="var(--yellow)"/><circle r="9" fill="var(--ink)"/></g></svg><div className="hero-map-copy"><div className="hero-promise">{t.home.exploreMap}</div><ArrowRight size={28} aria-hidden="true" /></div></Link>

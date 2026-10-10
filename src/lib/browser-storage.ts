@@ -17,6 +17,7 @@ export function readLocalePreference(): Locale | null {
 
 export function writeLocalePreference(locale: Locale): void {
   try { localStorage.setItem(LOCALE_KEY, locale) } catch { /* Storage can be disabled. */ }
+  try { document.cookie = `${LOCALE_KEY}=${locale}; Path=/; Max-Age=31536000; SameSite=Lax` } catch { /* Cookies can be disabled. */ }
 }
 
 export function readFavouriteIds(): string[] {

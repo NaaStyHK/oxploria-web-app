@@ -1,5 +1,4 @@
 import type { Coordinates } from '@/lib/types'
-import type { Place } from '@/lib/types'
 import type { Locale } from '@/lib/i18n/config'
 
 function validCoordinates(latitude: number, longitude: number): Coordinates | null {
@@ -38,7 +37,7 @@ export function normalizePlaceCoordinates(raw: { location?: unknown; distance?: 
   return latitude !== null && longitude !== null ? validCoordinates(latitude, longitude) : null
 }
 
-export function hasCoordinates(place: Place): place is Place & { coordinates: Coordinates } { return place.coordinates !== null }
+export function hasCoordinates<T extends { coordinates: Coordinates | null }>(place: T): place is T & { coordinates: Coordinates } { return place.coordinates !== null }
 
 const EARTH_RADIUS_KM = 6371
 

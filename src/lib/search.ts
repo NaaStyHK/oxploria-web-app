@@ -1,4 +1,4 @@
-import type { Place } from '@/lib/types'
+import type { PlaceSummary } from '@/lib/types'
 
 export function normalizeSearch(value: string): string {
   return value
@@ -8,7 +8,7 @@ export function normalizeSearch(value: string): string {
     .trim()
 }
 
-export function matchesPlace(place: Place, query: string): boolean {
+export function matchesPlace(place: PlaceSummary, query: string): boolean {
   const needle = normalizeSearch(query)
   if (!needle) return true
   const haystack = [

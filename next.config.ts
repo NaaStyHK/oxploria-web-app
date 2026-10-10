@@ -2,10 +2,27 @@ import type { NextConfig } from 'next'
 import path from 'path'
 
 const privateLanDevOrigins = [
+  '127.0.0.1',
+  'localhost',
   '10.*.*.*',
   '192.168.*.*',
   ...Array.from({ length: 16 }, (_, index) => `172.${index + 16}.*.*`),
 ]
+
+const contentSecurityPolicyReportOnly = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self' data: https://tiles.openfreemap.org",
+  "img-src 'self' data: blob: https://storage.googleapis.com https://firebasestorage.googleapis.com",
+  "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://tiles.openfreemap.org",
+  "worker-src 'self' blob:",
+  "child-src blob:",
+].join('; ')
 
 const nextConfig: NextConfig = {
   experimental: { globalNotFound: true },
@@ -23,9 +40,11 @@ const nextConfig: NextConfig = {
       source: '/(.*)',
       headers: [
         { key: 'X-Content-Type-Options', value: 'nosniff' },
+        { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
         { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
         { key: 'X-Frame-Options', value: 'DENY' },
+        { key: 'Content-Security-Policy-Report-Only', value: contentSecurityPolicyReportOnly },
       ],
     }]
   },

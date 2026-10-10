@@ -3,9 +3,9 @@ import type { ReactNode } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { PlaceCard } from '@/components/place-card'
 import type { Locale } from '@/lib/i18n/config'
-import type { Place } from '@/lib/types'
+import type { PlaceSummary } from '@/lib/types'
 
-type DiscoveryItem = { place: Place; distance?: string }
+type DiscoveryItem = { place: PlaceSummary; distance?: string }
 
 export function DiscoveryRail({
   locale,

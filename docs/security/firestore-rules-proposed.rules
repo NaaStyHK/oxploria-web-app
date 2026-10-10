@@ -1,0 +1,18 @@
+// PROPOSITION UNIQUEMENT — ces règles ne sont pas une copie certifiée des
+// règles déployées. Ne pas déployer ce fichier seul : il doit être fusionné
+// après audit avec les règles nécessaires à l'application mobile.
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /Barcelona/{document=**} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+
+    match /La-Rochelle/{document=**} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+  }
+}

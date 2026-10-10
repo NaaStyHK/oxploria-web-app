@@ -1,0 +1,14 @@
+{
+  "firestore": {
+    "rules": "docs/security/firestore-rules-proposed.rules"
+  },
+  "emulators": {
+    "firestore": {
+      "port": 8085
+    },
+    "ui": {
+      "enabled": false
+    },
+    "singleProjectMode": true
+  }
+}

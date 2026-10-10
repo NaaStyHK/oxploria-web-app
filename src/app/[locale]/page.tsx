@@ -24,7 +24,7 @@ export default async function HomePage({ params }: Props) {
   if (!isLocale(value)) notFound()
   const locale: Locale = value
   const cities = mockRepository.listCities(locale)
-  const cityPlaceGroups = await Promise.all(cities.map((city) => firebasePlaceRepository.listPlaces(locale, city.id)))
+  const cityPlaceGroups = await Promise.all(cities.map((city) => firebasePlaceRepository.listPlaceSummaries(locale, city.id)))
   const guides = mockRepository.listGuides(locale)
   const cityBundles: HomeCityBundle[] = cities.map((city, index) => {
     const places = cityPlaceGroups[index]
