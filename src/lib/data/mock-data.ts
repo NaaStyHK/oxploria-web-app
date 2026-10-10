@@ -15,7 +15,7 @@ export const cityRecords: CityRecord[] = [
     country: { fr: 'Espagne', es: 'España', en: 'Spain' },
     coordinates: { latitude: 41.3874, longitude: 2.1686 },
     zoom: 12.4,
-    image: '/images/barcelona-stone.jpg',
+    image: '/images/barcelona-sagrada-familia.jpg',
     description: {
       fr: 'Une ville où deux mille ans d’histoire affleurent entre les marchés, les passages gothiques et les façades modernistes.',
       es: 'Una ciudad donde dos mil años de historia aparecen entre mercados, pasajes góticos y fachadas modernistas.',
