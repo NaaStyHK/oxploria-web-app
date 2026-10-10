@@ -58,3 +58,17 @@ test('search, guide and 404', async ({ page }) => {
   await page.goto('/fr/page-introuvable-pour-test')
   await expect(page.locator('main h1')).toContainText('404')
 })
+
+for (const legalPage of [
+  { locale: 'fr', path: '/fr/mentions-legales', title: 'Mentions légales' },
+  { locale: 'es', path: '/es/privacidad', title: 'Política de privacidad' },
+  { locale: 'en', path: '/en/cookies', title: 'Cookies and local storage' },
+] as const) {
+  test(`${legalPage.locale} legal pages expose localized content and cross-links`, async ({ page }) => {
+    await page.goto(legalPage.path)
+    await expect(page.locator('main h1')).toHaveText(legalPage.title)
+    await expect(page.locator('.legal-updated')).toContainText('2026')
+    await expect(page.locator('.legal-related a')).toHaveCount(3)
+    await expect(page.locator('footer')).toContainText(/Cookies/)
+  })
+}

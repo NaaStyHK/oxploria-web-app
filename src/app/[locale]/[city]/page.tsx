@@ -16,6 +16,8 @@ import { getDictionary } from '@/lib/i18n/dictionaries'
 import { isLocale, locales, type Locale } from '@/lib/i18n/config'
 import { route, segments } from '@/lib/routes'
 import { localizedMetadata } from '@/lib/seo'
+import { getLegalDocument } from '@/lib/legal-content'
+import { legalConfig } from '@/lib/legal-config'
 import { hasEditorialCollection, isGoingOutPlace, markerIconPath, markerTypeForCategoryId } from '@/lib/place-taxonomy'
 
 type Props = { params: Promise<{ locale: string; city: string }> }
@@ -34,10 +36,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const page = topPageForSlug(slug, value)
     if (!page) return {}
     const paths = Object.fromEntries(locales.map((locale) => [locale, page === 'guides' ? route.guides(locale) : page === 'search' ? route.search(locale) : route.page(locale, page)])) as Record<Locale, string>
-    const titles: Record<TopPage, string> = { guides: t.guides.title, search: t.search.title, about: t.legal.aboutTitle, contact: t.legal.contactTitle, privacy: t.legal.privacyTitle, cookies: t.legal.cookiesTitle, legal: t.legal.legalTitle, terms: t.legal.termsTitle }
-    const descriptions: Record<TopPage, string> = { guides: t.guides.intro, search: t.search.description, about: t.legal.aboutBody, contact: t.legal.contactBody, privacy: t.legal.privacyBody, cookies: t.legal.cookiesBody, legal: t.legal.legalBody, terms: t.legal.termsBody }
+    const titles: Record<TopPage, string> = { guides: t.guides.title, search: t.search.title, about: getLegalDocument(value, 'about').title, contact: getLegalDocument(value, 'contact').title, privacy: getLegalDocument(value, 'privacy').title, cookies: getLegalDocument(value, 'cookies').title, legal: getLegalDocument(value, 'legal').title, terms: getLegalDocument(value, 'terms').title }
+    const descriptions: Record<TopPage, string> = { guides: t.guides.intro, search: t.search.description, about: getLegalDocument(value, 'about').description, contact: getLegalDocument(value, 'contact').description, privacy: getLegalDocument(value, 'privacy').description, cookies: getLegalDocument(value, 'cookies').description, legal: getLegalDocument(value, 'legal').description, terms: getLegalDocument(value, 'terms').description }
     const metadata = localizedMetadata(value, paths, `${titles[page]} | Oxploria`, descriptions[page])
-    return page === 'search' ? { ...metadata, robots: { index: false, follow: true } } : metadata
+    if (page === 'search') return { ...metadata, robots: { index: false, follow: true } }
+    if (page !== 'guides') {
+      const canonical = `${legalConfig.publicSiteUrl}${paths[value]}`
+      return {
+        ...metadata,
+        alternates: { canonical, languages: { fr: `${legalConfig.publicSiteUrl}${paths.fr}`, es: `${legalConfig.publicSiteUrl}${paths.es}`, en: `${legalConfig.publicSiteUrl}${paths.en}`, 'x-default': `${legalConfig.publicSiteUrl}${paths.en}` } },
+        openGraph: { ...metadata.openGraph, url: canonical },
+      }
+    }
+    return metadata
   }
   const record = cityRecords.find((item) => item.id === city.id)!
   const paths = Object.fromEntries(locales.map((locale) => [locale, route.city(locale, record.slug[locale])])) as Record<Locale, string>

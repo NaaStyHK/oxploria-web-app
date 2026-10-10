@@ -1,16 +1,31 @@
-# Informations légales à compléter
+# Validation juridique avant publication
 
-Les valeurs ci-dessous doivent être fournies et validées par l’éditeur avant que les mentions légales puissent être considérées comme complètes. Elles sont volontairement laissées à `null` dans `src/lib/legal-config.ts` afin de ne publier aucune information inventée.
+Audit technique et éditorial réalisé le 10 octobre 2026. Les pages publiques décrivent le fonctionnement réel du site web : aucune authentification, aucun paiement, aucune publicité, aucune affiliation, aucune mesure d’audience active et aucune écriture de données visiteur dans Firestore.
 
-- Nom légal complet ou raison sociale de l’éditeur.
-- Forme juridique et capital social, si applicable.
-- Adresse postale du siège ou du domicile de l’éditeur.
-- Numéro d’immatriculation (SIREN/SIRET/RCS ou équivalent), si applicable.
-- Numéro de TVA intracommunautaire, si applicable.
-- Nom du directeur ou de la directrice de publication.
-- Adresse email dédiée aux demandes juridiques et de confidentialité.
-- Coordonnées postales exactes de l’hébergeur à confirmer selon le contrat Vercel du projet.
-- Durées de conservation à valider juridiquement pour les préférences locales et les futurs services éventuels.
-- Droit applicable, juridiction compétente et procédure de médiation, selon le statut réel de l’éditeur.
+## Informations obligatoires encore manquantes
 
-Le site n’active actuellement ni Firebase Auth, ni Analytics, ni AdSense, ni affiliation, ni CMP. Toute activation future devra entraîner une nouvelle revue des pages Confidentialité, Cookies et Conditions.
+Ces informations n’ont pas été communiquées et ne doivent pas être inventées :
+
+- **Adresse postale complète de Kevin Hafsi EI.** La seule mention « La Rochelle, France » ne satisfait pas l’obligation d’adresse applicable au site professionnel d’un entrepreneur individuel.
+- **Numéro de téléphone professionnel de l’éditeur.** La fiche officielle Service-Public demande un courriel et un numéro de téléphone.
+- **Numéro de téléphone de l’hébergeur.** Vercel publie son identité et son adresse, mais aucun numéro général n’a été identifié dans les sources officielles consultées. Faire valider la présentation retenue ou demander cette information à Vercel.
+- **Situation TVA et immatriculation.** Confirmer si une mention de TVA intracommunautaire, de non-assujettissement, de RNE ou de RCS doit s’ajouter au SIRET fourni.
+
+Source : [Service-Public — mentions obligatoires d’un entrepreneur individuel](https://entreprendre.service-public.gouv.fr/vosdroits/F31228).
+
+## Validation humaine demandée
+
+- Faire relire les quatre documents par un professionnel du droit avant publication définitive.
+- Confirmer les durées de conservation des courriels reçus à `contact@oxploria.com`.
+- Vérifier les durées de journaux du compte Vercel, la région Firestore et celle du bucket Storage.
+- Refaire l’audit avant toute activation de Firebase Auth, Analytics, AdSense, affiliation, paiement, formulaire, newsletter, CMP ou autre traceur.
+- Ajouter des conditions générales de vente uniquement si Oxploria commence à vendre des biens ou services sur le site.
+
+## Sources officielles consultées
+
+- Service-Public Entreprendre — mentions obligatoires d’un entrepreneur individuel.
+- CNIL — droits des personnes et recommandation consolidée sur les cookies et traceurs (2026).
+- Vercel — Privacy Notice, Terms et DPA ; adresse vérifiée : 440 N Barranca Avenue #4133, Covina, CA 91723, États-Unis.
+- Firebase — Privacy and Security et Data Processing and Security Terms.
+- OpenStreetMap — Copyright and License (ODbL et attribution).
+- OpenMapTiles — licence et attribution du schéma cartographique.

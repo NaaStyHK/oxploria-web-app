@@ -14,6 +14,16 @@ test('canonical, hreflang and x-default share the configured origin', async ({ p
   }
 })
 
+test('legal documents use the final public domain and localized alternates', async ({ page }) => {
+  for (const path of ['/fr/mentions-legales', '/es/privacidad', '/en/terms']) {
+    await page.goto(path)
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /^https:\/\/www\.oxploria\.com\//)
+    for (const language of ['fr', 'es', 'en', 'x-default']) {
+      await expect(page.locator(`link[rel="alternate"][hreflang="${language}"]`)).toHaveAttribute('href', /^https:\/\/www\.oxploria\.com\//)
+    }
+  }
+})
+
 test('map and search are noindex while robots and sitemap stay public', async ({ page, request }) => {
   for (const path of ['/fr/barcelone/carte', '/fr/recherche']) {
     await page.goto(path)

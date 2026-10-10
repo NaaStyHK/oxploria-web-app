@@ -1,6 +1,6 @@
 // PROPOSITION UNIQUEMENT — ces règles ne sont pas une copie certifiée des
 // règles déployées. Ne pas déployer ce fichier seul : il doit être fusionné
-// après audit avec les règles nécessaires à l'application mobile.
+// après audit avec les règles nécessaires aux autres clients Firebase.
 rules_version = '2';
 
 service cloud.firestore {

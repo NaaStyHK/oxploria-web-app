@@ -1,13 +1,30 @@
-/**
- * Central location for legal publisher details. Null values are intentionally
- * not rendered as facts until the publisher has supplied and verified them.
- */
 export const legalConfig = {
-  publisherName: null,
+  tradeName: 'Oxploria',
+  operatorName: 'Kevin Hafsi',
+  legalForm: 'Entrepreneur individuel (micro-entrepreneur)',
+  siret: '10181386300012',
+  publicationDirector: 'Kevin Hafsi',
+  publisherLocation: 'La Rochelle, France',
   publisherAddress: null,
-  publicationDirector: null,
-  legalEmail: null,
+  publisherPhone: null,
   contactEmail: 'contact@oxploria.com',
-  hostingProvider: 'Vercel Inc.',
-  dataProvider: 'Google Firebase / Cloud Firestore',
+  publicSiteUrl: 'https://www.oxploria.com',
+  lastUpdated: '2026-10-10',
+  hostingProvider: {
+    name: 'Vercel Inc.',
+    address: '440 N Barranca Avenue #4133, Covina, CA 91723, United States',
+    privacyUrl: 'https://vercel.com/legal/privacy-notice',
+    termsUrl: 'https://vercel.com/legal/terms',
+  },
+  dataProvider: {
+    name: 'Google Firebase / Cloud Firestore',
+    privacyUrl: 'https://firebase.google.com/support/privacy',
+    processingTermsUrl: 'https://firebase.google.com/terms/data-processing-terms/',
+  },
+  mapping: {
+    renderer: { name: 'MapLibre GL JS', url: 'https://maplibre.org/maplibre-gl-js/docs/' },
+    tiles: { name: 'OpenFreeMap', url: 'https://openfreemap.org/' },
+    schema: { name: 'OpenMapTiles', url: 'https://openmaptiles.org/' },
+    data: { name: 'OpenStreetMap contributors', url: 'https://www.openstreetmap.org/copyright' },
+  },
 } as const

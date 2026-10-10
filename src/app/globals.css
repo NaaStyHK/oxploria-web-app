@@ -349,9 +349,25 @@ p { max-width: 72ch; }
 body:has(.explore-shell) { overflow: hidden; }
 body:has(.explore-shell) .site-footer { display: none; }
 
-.legal-layout { display: grid; gap: 2rem; }
+.legal-hero { padding-block: clamp(2.5rem, 6vw, 5rem); }
+.legal-layout { display: grid; gap: 2rem; align-items: start; }
 .legal-nav { display: flex; flex-wrap: wrap; gap: .5rem; align-content: start; }
-.legal-copy { font-size: 1.08rem; }
+.legal-nav .chip[aria-current='page'] { border-color: var(--ink); background: var(--ink); color: var(--white); }
+.legal-copy { min-width: 0; font-size: 1.02rem; line-height: 1.72; }
+.legal-copy-header { padding-bottom: var(--space-5); border-bottom: 1px solid var(--line); }
+.legal-copy h1 { max-width: 15ch; }
+.legal-updated { margin-top: .75rem; color: var(--muted); font-size: .84rem; font-weight: 700; }
+.legal-intro { max-width: 68ch; margin-top: var(--space-3); font-size: clamp(1.05rem, 2vw, 1.2rem); }
+.legal-sections { display: grid; gap: var(--space-5); padding-top: var(--space-5); }
+.legal-sections section { scroll-margin-top: calc(var(--header-height) + 1rem); }
+.legal-sections h2 { margin-bottom: .75rem; font-size: clamp(1.35rem, 3vw, 1.8rem); letter-spacing: -.025em; }
+.legal-sections p + p { margin-top: .8rem; }
+.legal-sections ul { display: grid; gap: .55rem; padding-left: 1.25rem; }
+.legal-links { display: flex; flex-wrap: wrap; gap: .55rem 1rem; margin-top: 1rem; }
+.legal-links a, .legal-related a { display: inline-flex; align-items: center; gap: .3rem; color: var(--ink); font-weight: 700; text-underline-offset: .2em; }
+.legal-contact { margin-top: var(--space-5); }
+.legal-related { display: flex; flex-wrap: wrap; gap: .65rem 1.25rem; margin-top: var(--space-6); padding-top: var(--space-4); border-top: 1px solid var(--line); }
+.legal-related a { font-size: .9rem; }
 
 .site-footer { margin-top: var(--space-6); border-top: 1px solid var(--line-on-dark); background: var(--ink); color: var(--white); padding: var(--space-7) 0 max(var(--space-5), env(safe-area-inset-bottom)); }
 .footer-grid { display: grid; gap: var(--space-6); }
@@ -406,7 +422,9 @@ body:has(.explore-shell) .site-footer { display: none; }
   .place-content-grid { grid-template-columns: minmax(0, 1fr) 340px; }
   .info-panel { position: sticky; top: calc(var(--header-height) + 1rem); }
   .guide-body { grid-template-columns: minmax(0, 1fr) 330px; align-items: start; }
-  .legal-layout { grid-template-columns: 240px minmax(0, 720px); }
+  .legal-layout { grid-template-columns: 240px minmax(0, 760px); gap: clamp(3rem, 7vw, 7rem); }
+  .legal-nav { position: sticky; top: calc(var(--header-height) + 1.5rem); flex-direction: column; }
+  .legal-nav .chip { justify-content: flex-start; width: 100%; }
   .site-footer { padding-top: 5rem; }
   .footer-grid { grid-template-columns: 1fr 1.6fr; }
   .footer-columns { grid-template-columns: repeat(4, 1fr); }
