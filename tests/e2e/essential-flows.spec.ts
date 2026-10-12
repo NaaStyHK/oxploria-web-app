@@ -59,6 +59,37 @@ test('search, guide and 404', async ({ page }) => {
   await expect(page.locator('main h1')).toContainText('404')
 })
 
+test('category pages handle many, one and zero places', async ({ page }) => {
+  await page.goto('/fr/barcelone/categories/culture-lieux')
+  await expect(page.locator('main h1')).toHaveText('Culture & lieux')
+  await expect(page.locator('.category-count')).toHaveText('205 lieux')
+  await expect(page.locator('.category-results .place-card')).toHaveCount(205)
+
+  await page.goto('/fr/barcelone/categories/loisirs-activites')
+  await expect(page.locator('.category-count')).toHaveText('1 lieu')
+  await expect(page.locator('.category-results .place-card')).toHaveCount(1)
+
+  await page.goto('/fr/barcelone/categories/architecture')
+  await expect(page.locator('.category-count')).toHaveText('Aucun lieu')
+  await expect(page.locator('.category-empty')).toBeVisible()
+  await expect(page.locator('.category-related-links a')).toHaveCount(5)
+})
+
+test('category pages localize their content and preserve translated routes', async ({ page }) => {
+  const pages = [
+    { path: '/fr/la-rochelle/categories/architecture', count: 'Aucun lieu', heading: 'Tous les lieux' },
+    { path: '/es/la-rochelle/categorias/arquitectura', count: 'Ningún lugar', heading: 'Todos los lugares' },
+    { path: '/en/la-rochelle/categories/architecture', count: 'No places yet', heading: 'All places' },
+  ]
+  for (const item of pages) {
+    await page.goto(item.path)
+    await expect(page.locator('main h1')).toBeVisible()
+    await expect(page.locator('.category-count')).toHaveText(item.count)
+    await expect(page.locator('.category-results h2')).toHaveText(item.heading)
+    await expect(page.locator('.category-intro')).not.toBeEmpty()
+  }
+})
+
 for (const legalPage of [
   { locale: 'fr', path: '/fr/mentions-legales', title: 'Mentions légales' },
   { locale: 'es', path: '/es/privacidad', title: 'Política de privacidad' },

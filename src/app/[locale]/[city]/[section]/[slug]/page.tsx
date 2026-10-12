@@ -11,6 +11,7 @@ import { MiniLocation } from '@/components/mini-location'
 import { PlaceCard } from '@/components/place-card'
 import { SafeImage } from '@/components/safe-image'
 import { EmptyState } from '@/components/empty-state'
+import { formatCategoryCount, getCategoryContent, getCategoryInterface, getRelatedCategories } from '@/lib/category-content'
 import { categories as knownCategories, cityRecords, guideRecords } from '@/lib/data/mock-data'
 import { getCityById, mockRepository } from '@/lib/data/mock-repository'
 import { distanceInKm, hasCoordinates } from '@/lib/geo'
@@ -62,8 +63,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const cityCategories = [...new Map([...knownCategories, ...(await firebasePlaceRepository.listPlaceSummaries(value, city.id)).map((place) => place.category)].map((category) => [category.id, category])).values()]
     const category = cityCategories.find((item) => item.slug[value] === decodedSlug)
     if (!category) return {}
+    const content = getCategoryContent(city.id, category, value)
     const paths = Object.fromEntries(locales.map((locale) => [locale, route.category(locale, cityRecord.slug[locale], category.slug[locale])])) as Record<Locale, string>
-    return localizedMetadata(value, paths, `${category.name[value]} — ${city.name} | Oxploria`, `${category.name[value]} · ${city.description}`)
+    return localizedMetadata(value, paths, content.metaTitle, content.metaDescription)
   }
   if (section === segments.guides[value]) {
     const guide = mockRepository.getGuideBySlug(decodedSlug, value, city.id)
@@ -115,8 +117,17 @@ async function CategoryDetail({ locale, cityId, slug }: { locale: Locale; cityId
   const category = categories.find((item) => item.slug[locale] === slug)
   if (!category) notFound()
   const places = cityPlaces.filter((place) => place.category.id === category.id)
+  const content = getCategoryContent(city.id, category, locale)
+  const labels = getCategoryInterface(locale)
+  const relatedCategories = getRelatedCategories(categories, category.id)
+  const pageUrl = route.category(locale, city.slug, category.slug[locale])
   const breadcrumbs = breadcrumbJsonLd([{ name: 'Oxploria', path: route.home(locale) }, { name: city.name, path: route.city(locale, city.slug) }, { name: category.name[locale], path: route.category(locale, city.slug, category.slug[locale]) }])
-  return <main id="main-content" className="page-shell"><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs).replace(/</g, '\\u003c') }} /><section className="page-hero"><div className="container"><Breadcrumbs label={t.common.breadcrumb} items={[{ label: city.name, href: route.city(locale, city.slug) }, { label: category.name[locale] }]} /><h1>{category.name[locale]}<br/>{city.name}</h1><p>{t.places.categoryTitle}</p><div className="category-strip">{categories.map((item) => <Link key={item.id} className="chip" aria-current={item.id === category.id ? 'page' : undefined} href={route.category(locale, city.slug, item.slug[locale])}>{item.name[locale]}</Link>)}</div></div></section><section className="section-tight"><div className="container">{places.length ? <div className="place-grid">{places.map((place) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false}/>)}</div> : <EmptyState title={t.places.categoryEmpty} body={t.places.categoryEmptyHelp} action={<Link className="button button-primary" href={route.map(locale, city.slug)}><MapPin size={18}/>{t.city.exploreMap}</Link>}/>}</div></section></main>
+  const structuredData = [
+    { '@context': 'https://schema.org', '@type': 'CollectionPage', name: `${category.name[locale]} — ${city.name}`, description: content.metaDescription, url: `${SITE_URL}${pageUrl}`, inLanguage: locale },
+    breadcrumbs,
+    ...(places.length ? [{ '@context': 'https://schema.org', '@type': 'ItemList', name: `${category.name[locale]} — ${city.name}`, numberOfItems: places.length, itemListElement: places.map((place, index) => ({ '@type': 'ListItem', position: index + 1, name: place.name, url: `${SITE_URL}${route.place(locale, city.slug, place.slug)}` })) }] : []),
+  ]
+  return <main id="main-content" className="page-shell category-page"><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, '\\u003c') }} /><section className="page-hero category-hero"><div className="container"><Breadcrumbs label={t.common.breadcrumb} items={[{ label: city.name, href: route.city(locale, city.slug) }, { label: category.name[locale] }]} /><div className="category-heading"><p className="category-city mono">{city.name}</p><h1>{category.name[locale]}</h1><p className="category-count">{formatCategoryCount(places.length, locale)}</p><p className="category-intro">{content.intro}</p></div><nav className="category-strip category-primary-nav" aria-label={labels.categoryNavigation}>{categories.map((item) => <Link key={item.id} className="chip" aria-current={item.id === category.id ? 'page' : undefined} href={route.category(locale, city.slug, item.slug[locale])}>{item.name[locale]}</Link>)}</nav></div></section><section className="section-tight category-results"><div className="container"><div className="category-results-heading"><h2>{labels.allPlaces}</h2><span className="mono" aria-hidden="true">{String(places.length).padStart(2, '0')}</span></div>{places.length ? <div className="place-grid">{places.map((place) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false}/>)}</div> : <div className="category-empty"><EmptyState title={labels.emptyTitle} body={labels.emptyBody} action={<Link className="button button-primary" href={route.map(locale, city.slug)}><MapPin size={18}/>{labels.mapAction}</Link>}/></div>}</div></section>{relatedCategories.length > 0 && <section className="category-related" aria-labelledby="category-related-title"><div className="container"><h2 id="category-related-title">{labels.otherCategories}</h2><nav className="category-related-links" aria-label={labels.categoryNavigation}>{relatedCategories.map((item) => <Link key={item.id} className="chip" href={route.category(locale, city.slug, item.slug[locale])}>{item.name[locale]}</Link>)}</nav></div></section>}</main>
 }
 
 async function GuideDetail({ locale, cityId, slug }: { locale: Locale; cityId: string; slug: string }) {

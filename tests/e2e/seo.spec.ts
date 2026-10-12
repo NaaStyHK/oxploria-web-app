@@ -36,3 +36,23 @@ test('map and search are noindex while robots and sitemap stay public', async ({
   expect(sitemap.status()).toBe(200)
   expect(await sitemap.text()).toContain(`${productionOrigin}/fr`)
 })
+
+test('category metadata and structured data reflect the localized collection', async ({ page }) => {
+  await page.goto('/fr/barcelone/categories/culture-lieux')
+  await expect(page).toHaveTitle('Culture et lieux à Barcelone | Oxploria')
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /lieux culturels.*Barcelone/i)
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/fr\/barcelone\/categories\/culture-lieux$/)
+  for (const language of ['fr', 'es', 'en', 'x-default']) {
+    await expect(page.locator(`link[rel="alternate"][hreflang="${language}"]`)).toHaveCount(1)
+  }
+  const types = await page.locator('script[type="application/ld+json"]').evaluateAll((scripts) => scripts.flatMap((script) => JSON.parse(script.textContent || '[]')).map((item: { '@type'?: string }) => item['@type']))
+  expect(types).toContain('CollectionPage')
+  expect(types).toContain('BreadcrumbList')
+  expect(types).toContain('ItemList')
+
+  await page.goto('/fr/barcelone/categories/architecture')
+  const emptyTypes = await page.locator('script[type="application/ld+json"]').evaluateAll((scripts) => scripts.flatMap((script) => JSON.parse(script.textContent || '[]')).map((item: { '@type'?: string }) => item['@type']))
+  expect(emptyTypes).toContain('CollectionPage')
+  expect(emptyTypes).toContain('BreadcrumbList')
+  expect(emptyTypes).not.toContain('ItemList')
+})
