@@ -21,6 +21,7 @@ export function translatePathname(pathname: string, target: Locale): string {
   if (topLevelKey) {
     if (topLevelKey === 'guides') return route.guides(target)
     if (topLevelKey === 'search') return route.search(target)
+    if (topLevelKey === 'favourites') return route.favourites(target)
     if (['about', 'contact', 'privacy', 'cookies', 'legal', 'terms'].includes(topLevelKey)) {
       return route.page(target, topLevelKey as 'about' | 'contact' | 'privacy' | 'cookies' | 'legal' | 'terms')
     }

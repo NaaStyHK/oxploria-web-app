@@ -32,6 +32,8 @@ test('core page families remain bounded on mobile, tablet and desktop', async ({
     '/fr/barcelone/lieux/sagrada-familia--Sagrada-Fam%C3%ADlia',
     '/fr/barcelone/guides/que-faire-quartier-gothique',
     '/fr/recherche',
+    '/fr/favoris',
+    '/fr/a-propos',
     '/fr/barcelone/categories/architecture',
     '/fr/confidentialite',
     '/fr/page-introuvable-pour-test',
@@ -39,6 +41,17 @@ test('core page families remain bounded on mobile, tablet and desktop', async ({
   for (const width of [390, 768, 1280]) {
     await page.setViewportSize({ width, height: 900 })
     for (const path of paths) {
+      await page.goto(path)
+      await expectNoPageOverflow(page)
+    }
+  }
+})
+
+test('pre-launch product pages stay bounded at every target width', async ({ page }) => {
+  test.setTimeout(180_000)
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: Math.max(720, Math.round(width * 1.2)) })
+    for (const path of ['/fr/favoris', '/fr/barcelone', '/fr/la-rochelle', '/fr/recherche', '/fr/a-propos']) {
       await page.goto(path)
       await expectNoPageOverflow(page)
     }

@@ -14,8 +14,18 @@ export function SearchExperience({ locale, places }: { locale: Locale; places: P
   const t = getDictionary(locale)
   const [query, setQuery] = useState('')
   const results = useMemo(() => query.trim() ? places.filter((place) => matchesPlace(place, query)).slice(0, 24) : [], [places, query])
+  const suggestions = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const place of places) counts.set(place.categoryName, (counts.get(place.categoryName) ?? 0) + 1)
+    return [...counts].filter(([, count]) => count > 1).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([label]) => label)
+  }, [places])
+  const chooseSuggestion = (suggestion: string) => {
+    setQuery(suggestion)
+    track('search_performed', { queryLength: suggestion.length, source: 'suggestion' })
+  }
   return <div className="search-shell"><label className="search-form"><span className="sr-only">{t.search.placeholder}</span><input className="search-input" autoComplete="off" value={query} onChange={(event) => { setQuery(event.target.value); track('search_performed', { queryLength: event.target.value.length }) }} placeholder={t.search.placeholder}/><Search className="search-icon" size={24} aria-hidden="true" /></label>
+    <div className="search-suggestions"><h2>{t.search.suggestions}</h2><div className="search-suggestion-list">{suggestions.map((suggestion) => <button key={suggestion} type="button" className="chip" onClick={() => chooseSuggestion(suggestion)}>{suggestion}</button>)}</div></div>
     <div aria-live="polite" className="muted search-results-count">{query.trim() ? `${results.length} ${results.length === 1 ? t.common.result : t.common.results}` : ''}</div>
-    {query.trim() ? results.length ? <div className="results-grid">{results.map((place) => <PlaceCard key={place.id} place={place} locale={locale}/>)}</div> : <div className="search-empty"><EmptyState title={t.search.empty} body={t.search.emptyHelp}/></div> : <div className="search-empty"><EmptyState title={t.search.initial} body={t.search.description}/></div>}
+    {query.trim() ? results.length ? <div className="results-grid">{results.map((place) => <PlaceCard key={place.id} place={place} locale={locale}/>)}</div> : <div className="search-empty"><EmptyState title={t.search.empty} body={t.search.emptyHelp} action={<button type="button" className="button button-light search-reset" onClick={() => setQuery('')}>{t.search.reset}</button>}/></div> : <p className="search-initial muted">{t.search.initial}</p>}
   </div>
 }

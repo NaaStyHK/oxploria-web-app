@@ -9,6 +9,7 @@ import { DiscoveryRail } from '@/components/discovery-rail'
 import { SearchExperience } from '@/components/search-experience'
 import { SafeImage } from '@/components/safe-image'
 import { CityNearby } from '@/components/city-nearby'
+import { FavouritesExperience } from '@/components/favourites-experience'
 import { cityRecords } from '@/lib/data/mock-data'
 import { getCityById, mockRepository } from '@/lib/data/mock-repository'
 import { firebasePlaceRepository } from '@/lib/data/firebase-place-repository'
@@ -22,9 +23,15 @@ import { hasEditorialCollection, isGoingOutPlace, markerIconPath, markerTypeForC
 
 type Props = { params: Promise<{ locale: string; city: string }> }
 export const dynamicParams = false
-const topPages = ['guides', 'search', 'about', 'contact', 'privacy', 'cookies', 'legal', 'terms'] as const
+const topPages = ['guides', 'search', 'favourites', 'about', 'contact', 'privacy', 'cookies', 'legal', 'terms'] as const
 type TopPage = (typeof topPages)[number]
 function topPageForSlug(slug: string, locale: Locale): TopPage | null { return topPages.find((key) => segments[key][locale] === slug) ?? null }
+function topPagePath(page: TopPage, locale: Locale): string {
+  if (page === 'guides') return route.guides(locale)
+  if (page === 'search') return route.search(locale)
+  if (page === 'favourites') return route.favourites(locale)
+  return route.page(locale, page)
+}
 export function generateStaticParams() { return locales.flatMap((locale) => [...cityRecords.map((city) => ({ locale, city: city.slug[locale] })), ...topPages.map((key) => ({ locale, city: segments[key][locale] }))]) }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -35,11 +42,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!city) {
     const page = topPageForSlug(slug, value)
     if (!page) return {}
-    const paths = Object.fromEntries(locales.map((locale) => [locale, page === 'guides' ? route.guides(locale) : page === 'search' ? route.search(locale) : route.page(locale, page)])) as Record<Locale, string>
-    const titles: Record<TopPage, string> = { guides: t.guides.title, search: t.search.title, about: getLegalDocument(value, 'about').title, contact: getLegalDocument(value, 'contact').title, privacy: getLegalDocument(value, 'privacy').title, cookies: getLegalDocument(value, 'cookies').title, legal: getLegalDocument(value, 'legal').title, terms: getLegalDocument(value, 'terms').title }
-    const descriptions: Record<TopPage, string> = { guides: t.guides.intro, search: t.search.description, about: getLegalDocument(value, 'about').description, contact: getLegalDocument(value, 'contact').description, privacy: getLegalDocument(value, 'privacy').description, cookies: getLegalDocument(value, 'cookies').description, legal: getLegalDocument(value, 'legal').description, terms: getLegalDocument(value, 'terms').description }
+    const paths = Object.fromEntries(locales.map((locale) => [locale, topPagePath(page, locale)])) as Record<Locale, string>
+    const titles: Record<TopPage, string> = { guides: t.guides.title, search: t.search.title, favourites: t.favourites.title, about: getLegalDocument(value, 'about').title, contact: getLegalDocument(value, 'contact').title, privacy: getLegalDocument(value, 'privacy').title, cookies: getLegalDocument(value, 'cookies').title, legal: getLegalDocument(value, 'legal').title, terms: getLegalDocument(value, 'terms').title }
+    const descriptions: Record<TopPage, string> = { guides: t.guides.intro, search: t.search.description, favourites: t.favourites.description, about: getLegalDocument(value, 'about').description, contact: getLegalDocument(value, 'contact').description, privacy: getLegalDocument(value, 'privacy').description, cookies: getLegalDocument(value, 'cookies').description, legal: getLegalDocument(value, 'legal').description, terms: getLegalDocument(value, 'terms').description }
     const metadata = localizedMetadata(value, paths, `${titles[page]} | Oxploria`, descriptions[page])
-    if (page === 'search') return { ...metadata, robots: { index: false, follow: true } }
+    if (page === 'search' || page === 'favourites') return { ...metadata, robots: { index: false, follow: true } }
     if (page !== 'guides') {
       const canonical = `${legalConfig.publicSiteUrl}${paths[value]}`
       return {
@@ -68,6 +75,7 @@ export default async function CityPage({ params }: Props) {
       return <main id="main-content" className="page-shell"><section className="page-hero"><div className="container"><h1>{t.guides.title}</h1><p>{t.guides.intro}</p></div></section><section className="section-tight"><div className="container"><div className="guide-grid">{guides.map((guide) => { const guideCity = getCityById(guide.cityId, value); return guideCity ? <GuideCard key={guide.id} guide={guide} city={guideCity} locale={value}/> : null })}</div></div></section></main>
     }
     if (page === 'search') return <main id="main-content" className="page-shell"><section className="page-hero"><div className="container"><h1>{t.search.title}</h1><p>{t.search.description}</p></div></section><section className="section-tight"><div className="container"><SearchExperience locale={value} places={await firebasePlaceRepository.listPlaceSummaries(value)}/></div></section></main>
+    if (page === 'favourites') return <main id="main-content" className="page-shell"><section className="page-hero favourites-hero"><div className="container"><h1>{t.favourites.title}</h1><p>{t.favourites.description}</p></div></section><section className="section-tight favourites-section"><div className="container"><FavouritesExperience locale={value} places={await firebasePlaceRepository.listPlaceSummaries(value)}/></div></section></main>
     return <LegalPage locale={value} page={page}/>
   }
   const places = await firebasePlaceRepository.listPlaceSummaries(value, city.id)

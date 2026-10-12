@@ -5,6 +5,7 @@ const LOCALE_KEY = 'oxploria-locale'
 const FAVOURITES_KEY = 'oxploria-favourites'
 const SESSION_LOCATION_KEY = 'oxploria-session-location'
 const ACTIVE_CITY_KEY = 'oxploria-active-city'
+export const FAVOURITES_CHANGED_EVENT = 'oxploria-favourites-changed'
 
 export function readLocalePreference(): Locale | null {
   try {
@@ -31,7 +32,9 @@ export function readFavouriteIds(): string[] {
 
 export function writeFavouriteIds(ids: string[]): boolean {
   try {
-    localStorage.setItem(FAVOURITES_KEY, JSON.stringify(ids))
+    const normalized = [...new Set(ids.filter((id) => typeof id === 'string'))]
+    localStorage.setItem(FAVOURITES_KEY, JSON.stringify(normalized))
+    window.dispatchEvent(new CustomEvent(FAVOURITES_CHANGED_EVENT, { detail: normalized }))
     return true
   } catch {
     return false

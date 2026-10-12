@@ -6,6 +6,7 @@ export const segments = {
   categories: { fr: 'categories', es: 'categorias', en: 'categories' },
   guides: { fr: 'guides', es: 'guias', en: 'guides' },
   search: { fr: 'recherche', es: 'buscar', en: 'search' },
+  favourites: { fr: 'favoris', es: 'favoritos', en: 'favorites' },
   about: { fr: 'a-propos', es: 'acerca', en: 'about' },
   contact: { fr: 'contact', es: 'contacto', en: 'contact' },
   privacy: { fr: 'confidentialite', es: 'privacidad', en: 'privacy' },
@@ -30,5 +31,6 @@ export const route = {
   guides: (locale: Locale, citySlug?: string) => citySlug ? `/${locale}/${citySlug}/${segments.guides[locale]}` : `/${locale}/${segments.guides[locale]}`,
   guide: (locale: Locale, citySlug: string, guideSlug: string) => `/${locale}/${citySlug}/${segments.guides[locale]}/${guideSlug}`,
   search: (locale: Locale) => `/${locale}/${segments.search[locale]}`,
+  favourites: (locale: Locale) => `/${locale}/${segments.favourites[locale]}`,
   page: (locale: Locale, key: Extract<SegmentKey, 'about' | 'contact' | 'privacy' | 'cookies' | 'legal' | 'terms'>) => `/${locale}/${segments[key][locale]}`,
 }

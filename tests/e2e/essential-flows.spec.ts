@@ -59,6 +59,107 @@ test('search, guide and 404', async ({ page }) => {
   await expect(page.locator('main h1')).toContainText('404')
 })
 
+test('favorites persist across cities, update immediately and discard stale ids', async ({ page }) => {
+  test.setTimeout(90_000)
+  await page.goto('/fr/barcelone/lieux')
+  const barcelonaHeart = page.locator('.place-card .favourite-button').first()
+  await barcelonaHeart.click()
+  const barcelonaId = await barcelonaHeart.getAttribute('data-place-id')
+  expect(barcelonaId).toBeTruthy()
+
+  await page.goto('/fr/la-rochelle/lieux')
+  const laRochelleHeart = page.locator('.place-card .favourite-button').first()
+  await laRochelleHeart.click()
+  const laRochelleId = await laRochelleHeart.getAttribute('data-place-id')
+  expect(laRochelleId).toBeTruthy()
+
+  await page.goto('/fr/favoris')
+  await expect(page.locator('.favourites-grid .place-card')).toHaveCount(2)
+  await expect(page.locator('.favourites-grid')).toContainText('Barcelone')
+  await expect(page.locator('.favourites-grid')).toContainText('La Rochelle')
+  await page.reload()
+  await expect(page.locator('.favourites-grid .place-card')).toHaveCount(2)
+  await page.locator('.favourites-grid .favourite-button').first().click()
+  await expect(page.locator('.favourites-grid .place-card')).toHaveCount(1)
+  await page.locator('.favourites-grid .favourite-button').click()
+  await expect(page.getByText('Vous n’avez encore aucun lieu enregistré.')).toBeVisible()
+
+  await page.evaluate(() => localStorage.setItem('oxploria-favourites', JSON.stringify(['obsolete-place-id'])))
+  await page.reload()
+  await expect(page.getByText('Vous n’avez encore aucun lieu enregistré.')).toBeVisible()
+  expect(await page.evaluate(() => localStorage.getItem('oxploria-favourites'))).toBe('[]')
+})
+
+test('favorites routes and product pages are localized', async ({ page }) => {
+  for (const item of [
+    { path: '/fr/favoris', title: 'Mes favoris' },
+    { path: '/es/favoritos', title: 'Mis favoritos' },
+    { path: '/en/favorites', title: 'My favorites' },
+  ]) {
+    await page.goto(item.path)
+    await expect(page.locator('main h1')).toHaveText(item.title)
+  }
+  for (const item of [
+    { path: '/fr/a-propos', title: 'Pourquoi Oxploria' },
+    { path: '/es/acerca', title: 'Por qué Oxploria' },
+    { path: '/en/about', title: 'Why Oxploria' },
+  ]) {
+    await page.goto(item.path)
+    await expect(page.getByRole('heading', { name: item.title })).toBeVisible()
+    await expect(page.locator('main h1')).toHaveCount(1)
+  }
+  await page.goto('/fr/favoris')
+  await page.getByRole('button', { name: /langue/i }).click()
+  await page.locator('#language-options').getByRole('link', { name: /Español/i }).click()
+  await expect(page).toHaveURL(/\/es\/favoritos$/)
+})
+
+test('city suggestions become real proximity results and reuse session location', async ({ browser }) => {
+  const context = await browser.newContext({ permissions: ['geolocation'], geolocation: { latitude: 41.385, longitude: 2.173 } })
+  const page = await context.newPage()
+  await page.goto('/fr/barcelone')
+  await expect(page.getByRole('heading', { name: 'Suggestions pour commencer' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Près de vous' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Voir les lieux proches' }).click()
+  await expect(page.getByRole('heading', { name: 'Près de vous' })).toBeVisible()
+  await expect(page.locator('.city-nearby-section .place-card-footer .mono').first()).toBeVisible()
+  await page.goto('/fr/la-rochelle')
+  await expect(page.getByRole('heading', { name: 'Près de vous' })).toBeVisible()
+  await context.close()
+})
+
+test('city geolocation refusal keeps editorial suggestions available', async ({ browser }) => {
+  const context = await browser.newContext()
+  const page = await context.newPage()
+  await page.goto('/fr/barcelone')
+  await page.getByRole('button', { name: 'Voir les lieux proches' }).click()
+  await expect(page.getByRole('status')).toContainText(/refusé|indisponible|impossible/i)
+  await expect(page.getByRole('heading', { name: 'Suggestions pour commencer' })).toBeVisible()
+  await context.close()
+})
+
+test('search suggestions, no-results recovery and local-life wording work in each locale', async ({ page }) => {
+  for (const item of [
+    { path: '/fr/recherche', suggestions: 'Suggestions', reset: 'Effacer la recherche' },
+    { path: '/es/buscar', suggestions: 'Sugerencias', reset: 'Borrar la búsqueda' },
+    { path: '/en/search', suggestions: 'Suggestions', reset: 'Clear search' },
+  ]) {
+    await page.goto(item.path)
+    await expect(page.getByRole('heading', { name: item.suggestions })).toBeVisible()
+    const suggestion = page.locator('.search-suggestion-list button').first()
+    await suggestion.click()
+    await expect(page.locator('.results-grid .place-card').first()).toBeVisible()
+    await page.locator('.search-input').fill('zzzz-no-place-zzzz')
+    await expect(page.getByRole('button', { name: item.reset })).toBeVisible()
+  }
+  await page.goto('/fr/barcelone')
+  await expect(page.getByRole('heading', { name: 'Sorties & vie locale' })).toBeVisible()
+  await page.goto('/es/barcelona')
+  await expect(page.getByRole('heading', { name: 'Planes y vida local' })).toBeVisible()
+  await page.goto('/en/barcelona')
+  await expect(page.getByRole('heading', { name: 'Outings & local life' })).toBeVisible()
+})
+
 test('category pages handle many, one and zero places', async ({ page }) => {
   await page.goto('/fr/barcelone/categories/culture-lieux')
   await expect(page.locator('main h1')).toHaveText('Culture & lieux')

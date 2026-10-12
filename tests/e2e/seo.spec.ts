@@ -24,8 +24,21 @@ test('legal documents use the final public domain and localized alternates', asy
   }
 })
 
-test('map and search are noindex while robots and sitemap stay public', async ({ page, request }) => {
-  for (const path of ['/fr/barcelone/carte', '/fr/recherche']) {
+test('about metadata remains localized and indexable', async ({ page }) => {
+  for (const item of [
+    { path: '/fr/a-propos', title: 'À propos d’Oxploria' },
+    { path: '/es/acerca', title: 'Acerca de Oxploria' },
+    { path: '/en/about', title: 'About Oxploria' },
+  ]) {
+    await page.goto(item.path)
+    await expect(page).toHaveTitle(new RegExp(item.title))
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', new RegExp(`${item.path}$`))
+    await expect(page.locator('meta[name="robots"][content*="noindex"]')).toHaveCount(0)
+  }
+})
+
+test('map, search and favorites are noindex while robots and sitemap stay public', async ({ page, request }) => {
+  for (const path of ['/fr/barcelone/carte', '/fr/recherche', '/fr/favoris', '/es/favoritos', '/en/favorites']) {
     await page.goto(path)
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/i)
   }
@@ -34,7 +47,11 @@ test('map and search are noindex while robots and sitemap stay public', async ({
   expect(await robots.text()).toContain(`${productionOrigin}/sitemap.xml`)
   const sitemap = await request.get('/sitemap.xml')
   expect(sitemap.status()).toBe(200)
-  expect(await sitemap.text()).toContain(`${productionOrigin}/fr`)
+  const sitemapText = await sitemap.text()
+  expect(sitemapText).toContain(`${productionOrigin}/fr`)
+  expect(sitemapText).not.toContain('/favoris')
+  expect(sitemapText).not.toContain('/favoritos')
+  expect(sitemapText).not.toContain('/favorites')
 })
 
 test('category metadata and structured data reflect the localized collection', async ({ page }) => {

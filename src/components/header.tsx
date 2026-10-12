@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ChevronDown, Menu, X } from 'lucide-react'
+import { ChevronDown, Heart, Menu, X } from 'lucide-react'
 import type { Locale } from '@/lib/i18n/config'
 import { locales } from '@/lib/i18n/config'
 import { getDictionary } from '@/lib/i18n/dictionaries'
@@ -35,7 +35,8 @@ export function Header({ locale }: { locale: Locale }) {
     { href: route.page(locale, 'about'), label: t.nav.about },
   ]
   const mapHref = route.map(locale, currentCity.slug)
-  const mobileLinks = [links[0], { href: mapHref, label: t.nav.map }, ...links.slice(1), { href: route.search(locale), label: t.search.title }]
+  const favouritesHref = route.favourites(locale)
+  const mobileLinks = [links[0], { href: mapHref, label: t.nav.map }, ...links.slice(1), { href: route.search(locale), label: t.search.title }, { href: favouritesHref, label: t.favourites.navLabel }]
 
   useEffect(() => {
     const close = (event: MouseEvent) => {
@@ -73,6 +74,7 @@ export function Header({ locale }: { locale: Locale }) {
           {links.map((link) => <Link key={link.href} className="nav-link" href={link.href} aria-current={pathname === link.href ? 'page' : undefined}>{link.label}</Link>)}
         </nav>
         <div className="header-actions">
+          <Link className="header-favourites" href={favouritesHref} aria-current={pathname === favouritesHref ? 'page' : undefined} aria-label={t.favourites.navLabel}><Heart size={19} aria-hidden="true" /><span>{t.favourites.navLabel}</span></Link>
           <Link className="button button-primary button-small" href={mapHref} aria-current={pathname === mapHref ? 'page' : undefined}>{t.nav.map}</Link>
           <div className="language-switcher" ref={languageRef}>
             <button ref={languageButtonRef} className="language-button" type="button" aria-expanded={languageOpen} aria-controls="language-options" aria-label={`${t.footer.language}: ${t.localeName}`} onClick={() => setLanguageOpen((value) => !value)}>{locale.toUpperCase()} <ChevronDown size={13} aria-hidden="true" /></button>
