@@ -58,6 +58,19 @@ test('pre-launch product pages stay bounded at every target width', async ({ pag
   }
 })
 
+test('favorites navigation adapts from explicit label to compact access without overflow', async ({ page }) => {
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 800 })
+    await page.goto('/fr')
+    const link = page.locator('.header-favourites')
+    await expect(link).toBeVisible()
+    await expect(link).toHaveAttribute('href', '/fr/favoris')
+    await expectNoPageOverflow(page)
+    const labelVisible = await link.locator('span').isVisible()
+    expect(labelVisible).toBe(width >= 900)
+  }
+})
+
 test('every published category layout remains readable on mobile and desktop', async ({ page }) => {
   const categoryPaths = [
     '/fr/barcelone/categories/culture-lieux',

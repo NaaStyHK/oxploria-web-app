@@ -114,6 +114,41 @@ test('favorites routes and product pages are localized', async ({ page }) => {
   await expect(page).toHaveURL(/\/es\/favoritos$/)
 })
 
+test('favorites access is explicit across desktop pages and the mobile menu', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto('/fr/barcelone/lieux')
+  const placePath = await page.locator('.place-card-link').first().getAttribute('href')
+  expect(placePath).toBeTruthy()
+  for (const path of [
+    '/fr',
+    '/fr/barcelone',
+    placePath!,
+    '/fr/barcelone/categories/culture-lieux',
+    '/fr/barcelone/carte',
+  ]) {
+    await page.goto(path)
+    const favorites = page.locator('.header-favourites')
+    await expect(favorites).toBeVisible()
+    await expect(favorites).toContainText('Favoris')
+    await expect(favorites).toHaveAttribute('title', 'Favoris')
+  }
+  await page.locator('.header-favourites').click()
+  await expect(page).toHaveURL(/\/fr\/favoris$/)
+  await expect(page.locator('.header-favourites')).toHaveAttribute('aria-current', 'page')
+  await page.goBack()
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/fr/barcelone')
+  const compactFavorites = page.locator('.header-favourites')
+  await expect(compactFavorites).toHaveAttribute('aria-label', 'Favoris')
+  await expect(compactFavorites).toHaveCSS('min-height', '44px')
+  await page.getByRole('button', { name: 'Menu' }).click()
+  const mobileFavorites = page.locator('#mobile-navigation').getByRole('link', { name: 'Favoris' })
+  await expect(mobileFavorites).toBeVisible()
+  await mobileFavorites.click()
+  await expect(page).toHaveURL(/\/fr\/favoris$/)
+})
+
 test('city suggestions become real proximity results and reuse session location', async ({ browser }) => {
   const context = await browser.newContext({ permissions: ['geolocation'], geolocation: { latitude: 41.385, longitude: 2.173 } })
   const page = await context.newPage()

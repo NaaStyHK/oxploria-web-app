@@ -97,7 +97,7 @@ p { max-width: 72ch; }
 .language-menu a:hover { background: var(--paper); }
 .mobile-menu { position: fixed; inset: var(--header-height) 0 auto; padding: 1rem; border-bottom: 1px solid var(--line); background: var(--paper); box-shadow: var(--shadow-small); }
 .mobile-menu nav { display: grid; gap: 0.35rem; }
-.mobile-menu .nav-link { border-radius: var(--radius-sm); font-size: 1.1rem; }
+.mobile-menu .nav-link { gap: .5rem; border-radius: var(--radius-sm); font-size: 1.1rem; }
 
 .button { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 0.55rem; padding: 0.75rem 1.05rem; border: 1px solid transparent; border-radius: var(--radius-pill); font-weight: 740; text-decoration: none; cursor: pointer; transition: transform var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast); }
 .button:hover { transform: translateY(-2px); }
