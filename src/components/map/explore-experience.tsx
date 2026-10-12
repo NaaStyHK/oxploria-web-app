@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode, type WheelEvent } from 'react'
-import { Layers3, List, LocateFixed, LoaderCircle, Map as MapIcon, MapPin, Search, Star, UsersRound, X } from 'lucide-react'
+import { Layers3, List, LocateFixed, LoaderCircle, Map as MapIcon, MapPin, Search, Sparkles, Star, UsersRound, X } from 'lucide-react'
 import type { Category, City, PlaceSummary } from '@/lib/types'
 import type { Locale } from '@/lib/i18n/config'
 import { getDictionary } from '@/lib/i18n/dictionaries'
@@ -15,12 +15,11 @@ import { PlaceCard } from '@/components/place-card'
 import { track } from '@/lib/analytics'
 import { SafeImage } from '@/components/safe-image'
 import { DraggableSheet } from '@/components/map/draggable-sheet'
-import { hasEditorialCollection, markerIconPath, markerTypeForCategoryId, type PlaceMarkerType } from '@/lib/place-taxonomy'
+import { markerIconPath, markerTypeForCategoryId, type PlaceMarkerType } from '@/lib/place-taxonomy'
 import { useNearbyPosition } from '@/hooks/use-nearby-position'
+import { matchesEditorialFilter, type EditorialFilterKey } from '@/lib/editorial-filters'
 
 const MapCanvas = dynamic(() => import('@/components/map/map-canvas'), { ssr: false, loading: () => <div className="map-canvas skeleton" aria-hidden="true" /> })
-
-type EditorialSelection = 'Incontournables' | 'En famille'
 
 const categoryOrder: PlaceMarkerType[] = ['culture', 'nature', 'activity', 'local', 'bar', 'restaurant', 'nightlife', 'generic']
 const RESULT_BATCH_SIZE = 48
@@ -83,14 +82,14 @@ function FilterRail({ label, children }: { label: string; children: ReactNode })
   </div>
 }
 
-export function ExploreExperience({ locale, city, places, initialPlaceId, initialCategory, collectionLabel, requestLocationOnMount = false }: { locale: Locale; city: City; places: PlaceSummary[]; initialPlaceId?: string; initialCategory?: Category | null; collectionLabel?: string; requestLocationOnMount?: boolean }) {
+export function ExploreExperience({ locale, city, places, initialPlaceId, initialCategory, initialEditorial = null, collectionLabel, requestLocationOnMount = false }: { locale: Locale; city: City; places: PlaceSummary[]; initialPlaceId?: string; initialCategory?: Category | null; initialEditorial?: EditorialFilterKey | null; collectionLabel?: string; requestLocationOnMount?: boolean }) {
   const t = getDictionary(locale)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<string>(initialCategory?.id ?? 'all')
   const [selectedId, setSelectedId] = useState<string | undefined>(initialPlaceId)
   const { position: userPosition, state: locationState, active: nearbyActive, activate, deactivate } = useNearbyPosition()
   const [proximityActive, setProximityActive] = useState(false)
-  const [editorialSelection, setEditorialSelection] = useState<EditorialSelection | null>(null)
+  const [editorialSelection, setEditorialSelection] = useState<EditorialFilterKey | null>(initialEditorial)
   const [mapError, setMapError] = useState(false)
   const [mobileView, setMobileView] = useState<'map' | 'list'>('map')
   const [recenterRequest, setRecenterRequest] = useState(0)
@@ -105,7 +104,7 @@ export function ExploreExperience({ locale, city, places, initialPlaceId, initia
   const filtered = useMemo(() => {
     const matches = places
       .filter((place) => category === 'all' || place.category.id === category)
-      .filter((place) => !editorialSelection || hasEditorialCollection(place, editorialSelection))
+      .filter((place) => !editorialSelection || matchesEditorialFilter(place, editorialSelection))
       .filter((place) => matchesPlace(place, query))
     return locationActive && userPosition ? sortByDistance(matches, userPosition) : matches.sort((a, b) => Number(b.featured) - Number(a.featured))
   }, [places, category, editorialSelection, query, locationActive, userPosition])
@@ -157,12 +156,12 @@ export function ExploreExperience({ locale, city, places, initialPlaceId, initia
   const selectPlace = useCallback((id: string) => { setSelectedId(id); setMobileView('map'); track('place_marker_clicked', { placeId: id }) }, [setSelectedId, setMobileView])
   const locationMessage = locationState === 'insecure' ? t.map.locationInsecure : locationState === 'denied' ? t.map.locationDenied : locationState === 'unavailable' ? t.map.locationUnavailable : locationState === 'timeout' ? t.map.locationTimeout : locationState === 'unsupported' ? t.map.locationUnsupported : locationState === 'error' ? t.map.locationError : null
   const reset = () => { setQuery(''); setCategory('all'); setEditorialSelection(null); setProximityActive(false); setSelectedId(undefined); deactivate() }
-  const toggleEditorial = (selection: EditorialSelection) => setEditorialSelection((current) => current === selection ? null : selection)
+  const toggleEditorial = (selection: EditorialFilterKey) => setEditorialSelection((current) => current === selection ? null : selection)
 
   return <div className={`explore-shell mobile-view-${mobileView}`}><div className="explore-grid">
     <aside className="explore-sidebar" aria-label={t.map.resultsNear}>
       <div className="explore-toolbar"><label className="map-search"><span className="sr-only">{t.map.search}</span><input value={query} onChange={(event) => { setQuery(event.target.value); track('search_performed', { queryLength: event.target.value.length }) }} placeholder={t.map.search}/><Search size={18} aria-hidden="true" /></label>
-        <div className="map-filter-section discovery-filter-section"><span className="filter-group-label">{t.map.discoverFilters}</span><FilterRail label={t.map.discoverFilters}><button type="button" className="chip proximity-chip" aria-pressed={locationActive} onClick={handleNearMe} disabled={locationState === 'loading'}>{locationState === 'loading' ? <LoaderCircle className="spin" size={17} aria-hidden="true" /> : <LocateFixed size={17} aria-hidden="true" />}{locationState === 'loading' ? t.map.locating : t.map.nearMe}</button><button type="button" className="chip editorial-filter-chip" aria-pressed={editorialSelection === 'Incontournables'} onClick={() => toggleEditorial('Incontournables')}><Star size={17} aria-hidden="true" />{t.map.mustSee}</button><button type="button" className="chip editorial-filter-chip" aria-pressed={editorialSelection === 'En famille'} onClick={() => toggleEditorial('En famille')}><UsersRound size={18} aria-hidden="true" />{t.map.family}</button></FilterRail></div>
+        <div className="map-filter-section discovery-filter-section"><span className="filter-group-label">{t.map.discoverFilters}</span><FilterRail label={t.map.discoverFilters}><button type="button" className="chip proximity-chip" aria-pressed={locationActive} onClick={handleNearMe} disabled={locationState === 'loading'}>{locationState === 'loading' ? <LoaderCircle className="spin" size={17} aria-hidden="true" /> : <LocateFixed size={17} aria-hidden="true" />}{locationState === 'loading' ? t.map.locating : t.map.nearMe}</button><button type="button" className="chip editorial-filter-chip" aria-pressed={editorialSelection === 'must-see'} onClick={() => toggleEditorial('must-see')}><Star size={17} aria-hidden="true" />{t.map.mustSee}</button><button type="button" className="chip editorial-filter-chip" aria-pressed={editorialSelection === 'family'} onClick={() => toggleEditorial('family')}><UsersRound size={18} aria-hidden="true" />{t.map.family}</button><button type="button" className="chip editorial-filter-chip" aria-pressed={editorialSelection === 'local-life'} onClick={() => toggleEditorial('local-life')}><Sparkles size={17} aria-hidden="true" />{t.city.goingOut}</button></FilterRail></div>
         <div className="map-filter-section"><span className="filter-group-label">{t.map.categories}</span><FilterRail label={t.map.categories}><button className="chip" type="button" aria-pressed={category === 'all'} onClick={() => setCategory('all')}>{t.map.all}</button>{categories.map((item) => { const icon = markerIconPath(markerTypeForCategoryId(item.id)); return <button key={item.id} type="button" className="chip category-filter-chip" aria-pressed={category === item.id} onClick={() => { setCategory(item.id); track('filter_applied', { category: item.id }) }}><span className="marker-type-icon" style={{ '--marker-icon': `url(${icon})` } as CSSProperties} aria-hidden="true" />{item.name}</button> })}</FilterRail></div>
         {locationMessage && <div className="notice" role="status">{locationMessage}</div>}
         {locationActive && <span className="sr-only" role="status">{t.map.locationActive}</span>}

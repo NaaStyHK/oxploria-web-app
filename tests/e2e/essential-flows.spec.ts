@@ -262,6 +262,91 @@ test('search suggestions, no-results recovery and local-life wording work in eac
   await expect(page.getByRole('heading', { name: 'Outings & local life' })).toBeVisible()
 })
 
+test('search exposes every matching result through 24-card batches in FR, ES and EN', async ({ page }) => {
+  const locales = [
+    { path: '/fr/recherche', more: 'Afficher plus' },
+    { path: '/es/buscar', more: 'Mostrar más' },
+    { path: '/en/search', more: 'Show more' },
+  ]
+  for (const item of locales) {
+    await page.goto(item.path)
+    await page.locator('.search-suggestion-list button').first().click()
+    const totalText = await page.locator('.search-results-count').textContent()
+    const total = Number.parseInt(totalText ?? '', 10)
+    expect(total).toBeGreaterThan(24)
+    await expect(page.locator('.results-grid .place-card')).toHaveCount(24)
+    await page.getByRole('button', { name: item.more }).click()
+    await expect(page.locator('.results-grid .place-card')).toHaveCount(Math.min(48, total))
+  }
+
+  await page.goto('/fr/recherche')
+  await page.locator('.search-suggestion-list button').first().click()
+  const total = Number.parseInt(await page.locator('.search-results-count').textContent() ?? '', 10)
+  const more = page.getByRole('button', { name: 'Afficher plus' })
+  while (await more.isVisible()) await more.click()
+  await expect(page.locator('.results-grid .place-card')).toHaveCount(total)
+  await expect(more).toHaveCount(0)
+
+  await page.locator('.search-input').fill('zzzz-no-place-zzzz')
+  await expect(page.locator('.results-grid .place-card')).toHaveCount(0)
+  await expect(page.getByText('Aucun résultat pour cette recherche.')).toBeVisible()
+  await page.locator('.search-input').fill('Sagrada Família')
+  await expect(page.locator('.search-results-count')).toHaveText('1 résultat')
+  await expect(page.locator('.results-grid .place-card')).toHaveCount(1)
+})
+
+test('editorial view-all links preserve city and selection context', async ({ page }) => {
+  await page.goto('/fr')
+  const mustSeeSection = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Les incontournables' }) })
+  await mustSeeSection.getByRole('link', { name: 'Tout voir' }).click()
+  await expect(page).toHaveURL('/fr/barcelone/carte?editorial=must-see')
+  await expect(page.getByRole('button', { name: 'Incontournables' })).toHaveAttribute('aria-pressed', 'true')
+
+  await page.goto('/fr')
+  await page.locator('.home-city-option').filter({ hasText: 'La Rochelle' }).click()
+  const familySection = page.locator('section').filter({ has: page.getByRole('heading', { name: 'À faire en famille' }) })
+  await familySection.getByRole('link', { name: 'Tout voir' }).click()
+  await expect(page).toHaveURL('/fr/la-rochelle/carte?editorial=family')
+  await expect(page.getByRole('button', { name: 'En famille' })).toHaveAttribute('aria-pressed', 'true')
+
+  await page.goto('/fr/la-rochelle')
+  const localLifeSection = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Sorties & vie locale' }) })
+  await localLifeSection.getByRole('link', { name: 'Tout voir' }).click()
+  await expect(page).toHaveURL('/fr/la-rochelle/carte?editorial=local-life')
+  await expect(page.getByRole('button', { name: 'Sorties & vie locale' })).toHaveAttribute('aria-pressed', 'true')
+
+  await page.goto('/es/barcelona')
+  const spanishMustSee = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Imprescindibles' }) })
+  await spanishMustSee.getByRole('link', { name: 'Ver todo' }).click()
+  await expect(page).toHaveURL('/es/barcelona/mapa?editorial=must-see')
+  await expect(page.getByRole('button', { name: 'Imprescindibles' })).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('global map link follows the stored city across global pages and languages', async ({ page }) => {
+  await page.goto('/fr')
+  await page.locator('.home-city-option').filter({ hasText: 'La Rochelle' }).click()
+  await page.goto('/fr/favoris')
+  await expect(page.locator('.header-actions').getByRole('link', { name: 'Carte' })).toHaveAttribute('href', '/fr/la-rochelle/carte')
+
+  await page.goto('/fr')
+  await page.locator('.home-city-option').filter({ hasText: 'Barcelone' }).click()
+  await page.goto('/fr/recherche')
+  await expect(page.locator('.header-actions').getByRole('link', { name: 'Carte' })).toHaveAttribute('href', '/fr/barcelone/carte')
+
+  await page.evaluate(() => localStorage.removeItem('oxploria-active-city'))
+  await page.reload()
+  await expect(page.locator('.header-actions').getByRole('link', { name: 'Carte' })).toHaveAttribute('href', '/fr/barcelone/carte')
+
+  await page.evaluate(() => localStorage.setItem('oxploria-active-city', 'la-rochelle'))
+  await page.reload()
+  await page.getByRole('button', { name: /langue/i }).click()
+  await page.locator('#language-options').getByRole('link', { name: 'Español' }).click()
+  await expect(page.locator('.header-actions').getByRole('link', { name: 'Mapa' })).toHaveAttribute('href', '/es/la-rochelle/mapa')
+  await page.getByRole('button', { name: /idioma/i }).click()
+  await page.locator('#language-options').getByRole('link', { name: 'English' }).click()
+  await expect(page.locator('.header-actions').getByRole('link', { name: 'Map' })).toHaveAttribute('href', '/en/la-rochelle/map')
+})
+
 test('category pages handle many, one and zero places', async ({ page }) => {
   await page.goto('/fr/barcelone/categories/culture-lieux')
   await expect(page.locator('main h1')).toHaveText('Culture & lieux')

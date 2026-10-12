@@ -15,6 +15,7 @@ import { getDictionary } from '@/lib/i18n/dictionaries'
 import type { Locale } from '@/lib/i18n/config'
 import { markerIconPath, markerTypeForCategoryId } from '@/lib/place-taxonomy'
 import { route } from '@/lib/routes'
+import { editorialMapHref, type EditorialFilterKey } from '@/lib/editorial-filters'
 import type { Category, City, Guide, PlaceSummary } from '@/lib/types'
 
 export interface HomeCityBundle {
@@ -54,7 +55,7 @@ export function HomeDiscovery({ locale, cityBundles, guides }: { locale: Locale;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
   }
-  const sectionAction = () => <Link className="discovery-action" href={route.places(locale, city.slug)}>{t.common.viewAll}<ArrowRight size={17} aria-hidden="true" /></Link>
+  const sectionAction = (filter: EditorialFilterKey) => <Link className="discovery-action" href={editorialMapHref(locale, city.slug, filter)}>{t.common.viewAll}<ArrowRight size={17} aria-hidden="true" /></Link>
 
   return <main id="main-content">
     <section className="hero"><div className="container hero-grid">
@@ -68,9 +69,9 @@ export function HomeDiscovery({ locale, cityBundles, guides }: { locale: Locale;
 
     <section className="home-active-city" aria-live="polite"><div className="container home-active-city-intro"><div><span className="section-kicker">{t.home.selectedCity}</span><h2>{city.name}</h2></div><Link className="button button-dark button-small" href={route.map(locale, city.slug)}><Map size={17} aria-hidden="true" />{t.home.exploreMap}</Link></div></section>
 
-    <section className="discovery-section discovery-section-paper"><div className="container"><div className="discovery-heading"><div><span className="section-kicker">01</span><h2>{t.home.mustSeeTitle}</h2><p>{t.home.mustSeeBody.replace('{city}', city.name)}</p></div>{sectionAction()}</div><div className="discovery-rail">{mustSees.map((place) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} />)}</div></div></section>
+    <section className="discovery-section discovery-section-paper"><div className="container"><div className="discovery-heading"><div><span className="section-kicker">01</span><h2>{t.home.mustSeeTitle}</h2><p>{t.home.mustSeeBody.replace('{city}', city.name)}</p></div>{sectionAction('must-see')}</div><div className="discovery-rail">{mustSees.map((place) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} />)}</div></div></section>
 
-    <section className="discovery-section discovery-section-yellow"><div className="container"><div className="discovery-heading"><div><span className="section-kicker">02</span><h2>{t.home.familyTitle}</h2><p>{t.home.familyBody.replace('{city}', city.name)}</p></div>{sectionAction()}</div><div className="discovery-rail">{family.map((place) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} />)}</div></div></section>
+    <section className="discovery-section discovery-section-yellow"><div className="container"><div className="discovery-heading"><div><span className="section-kicker">02</span><h2>{t.home.familyTitle}</h2><p>{t.home.familyBody.replace('{city}', city.name)}</p></div>{sectionAction('family')}</div><div className="discovery-rail">{family.map((place) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} />)}</div></div></section>
 
     <section className="section-tight home-categories"><div className="container"><div className="section-heading home-heading"><div><span className="section-kicker">03</span><h2>{t.home.categoriesTitle}</h2><p>{t.home.categoriesBody.replace('{city}', city.name)}</p></div></div><div className="category-strip">{categories.map((category) => { const icon = markerIconPath(markerTypeForCategoryId(category.id)); return <Link className="chip" key={category.id} href={route.category(locale, city.slug, category.slug[locale])}><span className="marker-type-icon" style={{ '--marker-icon': `url(${icon})` } as CSSProperties} aria-hidden="true" />{category.name[locale]}</Link> })}</div></div></section>
 

@@ -49,9 +49,22 @@ test('map, search and favorites are noindex while robots and sitemap stay public
   expect(sitemap.status()).toBe(200)
   const sitemapText = await sitemap.text()
   expect(sitemapText).toContain(`${productionOrigin}/fr`)
+  for (const path of [
+    '/fr/barcelone/categories/architecture',
+    '/es/barcelona/categorias/arquitectura',
+    '/en/barcelona/categories/architecture',
+    '/fr/la-rochelle/categories/architecture',
+    '/es/la-rochelle/categorias/arquitectura',
+    '/en/la-rochelle/categories/architecture',
+  ]) expect(sitemapText).toContain(`${productionOrigin}${path}`)
   expect(sitemapText).not.toContain('/favoris')
   expect(sitemapText).not.toContain('/favoritos')
   expect(sitemapText).not.toContain('/favorites')
+  expect(sitemapText).not.toContain('/recherche')
+  expect(sitemapText).not.toContain('/buscar')
+  expect(sitemapText).not.toContain('/search')
+  const urls = [...sitemapText.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1])
+  expect(new Set(urls).size).toBe(urls.length)
 })
 
 test('category metadata and structured data reflect the localized collection', async ({ page }) => {

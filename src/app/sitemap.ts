@@ -4,6 +4,7 @@ import { firebasePlaceRepository } from '@/lib/data/firebase-place-repository'
 import { locales } from '@/lib/i18n/config'
 import { route } from '@/lib/routes'
 import { SITE_URL } from '@/lib/seo'
+import { mergePlaceCategories } from '@/lib/place-taxonomy'
 
 export const revalidate = 3600
 
@@ -15,7 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (const key of ['about', 'contact', 'privacy', 'cookies', 'legal', 'terms'] as const) pages.push({ path: route.page(locale, key), priority: .3, changeFrequency: 'yearly' })
     for (const city of cityRecords) {
       const places = await firebasePlaceRepository.listPlaceSummaries(locale, city.id)
-      const categories = [...new Map(places.map((place) => [place.category.id, place.category])).values()]
+      const categories = mergePlaceCategories(places.map((place) => place.category))
       pages.push({ path: route.city(locale, city.slug[locale]), priority: .9, changeFrequency: 'weekly' })
       pages.push({ path: route.places(locale, city.slug[locale]), priority: .8, changeFrequency: 'weekly' })
       pages.push({ path: route.guides(locale, city.slug[locale]), priority: .75, changeFrequency: 'weekly' })

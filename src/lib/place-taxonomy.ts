@@ -1,4 +1,4 @@
-import { categories } from '@/lib/data/mock-data'
+import { categories as permanentCategories } from '@/lib/data/mock-data'
 import { slugify } from '@/lib/slug'
 import type { Category, Place } from '@/lib/types'
 
@@ -11,7 +11,7 @@ const additionalCategories: Category[] = [
   { id: 'nightlife', name: { fr: 'Discothèques', es: 'Discotecas', en: 'Nightclubs' }, slug: { fr: 'discotheques', es: 'discotecas', en: 'nightclubs' } },
 ]
 
-const knownCategories = [...categories, ...additionalCategories]
+const knownCategories = [...permanentCategories, ...additionalCategories]
 const categoryAliases: Record<string, string> = {
   'nature-outdoor': 'nature',
   'nature-outdoors': 'nature',
@@ -31,6 +31,10 @@ const categoryAliases: Record<string, string> = {
 }
 
 export const markerTypes: PlaceMarkerType[] = ['culture', 'nature', 'activity', 'local', 'bar', 'restaurant', 'nightlife', 'generic']
+
+export function mergePlaceCategories(discoveredCategories: Category[] = []): Category[] {
+  return [...new Map([...permanentCategories, ...discoveredCategories].map((category) => [category.id, category])).values()]
+}
 
 export function getKnownPlaceCategory(categoryId: string): Category | null {
   return knownCategories.find((category) => category.id === categoryId) ?? null

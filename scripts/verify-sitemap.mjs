@@ -26,6 +26,18 @@ try {
   if (duplicates.length) throw new Error(`Sitemap contains duplicate URLs: ${[...new Set(duplicates)].slice(0, 5).join(', ')}`)
   const invalid = urls.filter((url) => !url.startsWith('https://oxploria-web-app.vercel.app/'))
   if (invalid.length) throw new Error(`Sitemap contains URLs on another origin: ${invalid.slice(0, 5).join(', ')}`)
+  const requiredArchitecturePaths = [
+    '/fr/barcelone/categories/architecture',
+    '/es/barcelona/categorias/arquitectura',
+    '/en/barcelona/categories/architecture',
+    '/fr/la-rochelle/categories/architecture',
+    '/es/la-rochelle/categorias/arquitectura',
+    '/en/la-rochelle/categories/architecture',
+  ]
+  const missingArchitecture = requiredArchitecturePaths.filter((path) => !urls.includes(`https://oxploria-web-app.vercel.app${path}`))
+  if (missingArchitecture.length) throw new Error(`Sitemap is missing permanent architecture pages: ${missingArchitecture.join(', ')}`)
+  const excluded = urls.filter((url) => /\/(?:favoris|favoritos|favorites|recherche|buscar|search)(?:\/|$)/.test(url))
+  if (excluded.length) throw new Error(`Sitemap contains noindex product pages: ${excluded.slice(0, 5).join(', ')}`)
   console.log(`Sitemap verified: ${urls.length} unique URLs on https://oxploria-web-app.vercel.app.`)
 } finally {
   server.kill()

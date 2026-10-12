@@ -1,5 +1,15 @@
 import type { PlaceSummary } from '@/lib/types'
 
+export const SEARCH_RESULTS_BATCH_SIZE = 24
+
+export function visibleSearchResults<T>(results: T[], limit: number): T[] {
+  return results.slice(0, limit)
+}
+
+export function nextSearchResultsLimit(currentLimit: number, totalResults: number): number {
+  return Math.min(currentLimit + SEARCH_RESULTS_BATCH_SIZE, totalResults)
+}
+
 export function normalizeSearch(value: string): string {
   return value
     .normalize('NFD')

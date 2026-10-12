@@ -12,7 +12,7 @@ import { MiniLocation } from '@/components/mini-location'
 import { PlaceCard } from '@/components/place-card'
 import { SafeImage } from '@/components/safe-image'
 import { formatCategoryCount, getCategoryContent, getCategoryInterface, getRelatedCategories } from '@/lib/category-content'
-import { categories as knownCategories, cityRecords, guideRecords } from '@/lib/data/mock-data'
+import { cityRecords, guideRecords } from '@/lib/data/mock-data'
 import { getCityById, mockRepository } from '@/lib/data/mock-repository'
 import { distanceInKm, hasCoordinates } from '@/lib/geo'
 import { firebasePlaceRepository } from '@/lib/data/firebase-place-repository'
@@ -21,6 +21,7 @@ import { getDictionary } from '@/lib/i18n/dictionaries'
 import { isLocale, locales, type Locale } from '@/lib/i18n/config'
 import { route, segments } from '@/lib/routes'
 import { breadcrumbJsonLd, localizedMetadata, SITE_URL } from '@/lib/seo'
+import { mergePlaceCategories } from '@/lib/place-taxonomy'
 
 type Props = { params: Promise<{ locale: string; city: string; section: string; slug: string }> }
 
@@ -34,7 +35,7 @@ export async function generateStaticParams() {
   const params = []
   for (const locale of locales) for (const city of cityRecords) {
     const places = await firebasePlaceRepository.listPlaceSummaries(locale, city.id)
-    const categories = [...new Map([...knownCategories, ...places.map((place) => place.category)].map((category) => [category.id, category])).values()]
+    const categories = mergePlaceCategories(places.map((place) => place.category))
     params.push(
       ...places.map((place) => ({ locale, city: city.slug[locale], section: segments.places[locale], slug: place.slug })),
       ...categories.map((category) => ({ locale, city: city.slug[locale], section: segments.categories[locale], slug: category.slug[locale] })),
@@ -60,7 +61,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return localizedMetadata(value, paths, `${place.name} — ${city.name} | Oxploria`, place.description, place.images[0])
   }
   if (section === segments.categories[value]) {
-    const cityCategories = [...new Map([...knownCategories, ...(await firebasePlaceRepository.listPlaceSummaries(value, city.id)).map((place) => place.category)].map((category) => [category.id, category])).values()]
+    const cityCategories = mergePlaceCategories((await firebasePlaceRepository.listPlaceSummaries(value, city.id)).map((place) => place.category))
     const category = cityCategories.find((item) => item.slug[value] === decodedSlug)
     if (!category) return {}
     const content = getCategoryContent(city.id, category, value)
@@ -113,7 +114,7 @@ async function CategoryDetail({ locale, cityId, slug }: { locale: Locale; cityId
   const city = getCityById(cityId, locale)
   if (!city) notFound()
   const cityPlaces = await firebasePlaceRepository.listPlaceSummaries(locale, city.id)
-  const categories = [...new Map([...knownCategories, ...cityPlaces.map((place) => place.category)].map((category) => [category.id, category])).values()]
+  const categories = mergePlaceCategories(cityPlaces.map((place) => place.category))
   const category = categories.find((item) => item.slug[locale] === slug)
   if (!category) notFound()
   const places = cityPlaces.filter((place) => place.category.id === category.id)

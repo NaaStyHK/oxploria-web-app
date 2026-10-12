@@ -7,6 +7,7 @@ const FAVOURITES_KEY = 'oxploria-favourites'
 const SESSION_LOCATION_KEY = 'oxploria-session-location'
 const ACTIVE_CITY_KEY = 'oxploria-active-city'
 export const FAVOURITES_CHANGED_EVENT = 'oxploria-favourites-changed'
+export const ACTIVE_CITY_CHANGED_EVENT = 'oxploria-active-city-changed'
 
 export function readLocalePreference(): Locale | null {
   try {
@@ -82,5 +83,8 @@ export function readActiveCityPreference(availableCityIds: string[]): string | n
 }
 
 export function writeActiveCityPreference(cityId: string): void {
-  try { localStorage.setItem(ACTIVE_CITY_KEY, cityId) } catch { /* Storage can be disabled. */ }
+  try {
+    localStorage.setItem(ACTIVE_CITY_KEY, cityId)
+    window.dispatchEvent(new CustomEvent(ACTIVE_CITY_CHANGED_EVENT, { detail: cityId }))
+  } catch { /* Storage can be disabled. */ }
 }

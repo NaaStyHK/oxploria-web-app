@@ -14,8 +14,9 @@ import { getDictionary } from '@/lib/i18n/dictionaries'
 import { isLocale, locales, type Locale } from '@/lib/i18n/config'
 import { route, segments } from '@/lib/routes'
 import { localizedMetadata } from '@/lib/seo'
+import { parseEditorialFilter } from '@/lib/editorial-filters'
 
-type Props = { params: Promise<{ locale: string; city: string; section: string }>; searchParams: Promise<{ place?: string; guide?: string; locate?: string; category?: string }> }
+type Props = { params: Promise<{ locale: string; city: string; section: string }>; searchParams: Promise<{ place?: string; guide?: string; locate?: string; category?: string; editorial?: string }> }
 
 export const dynamicParams = false
 
@@ -61,7 +62,8 @@ export default async function CitySectionPage({ params, searchParams }: Props) {
     const initialCategory = typeof query.category === 'string'
       ? mapPlaces.find((place) => place.category.id === query.category)?.category ?? getKnownPlaceCategory(query.category)
       : null
-    return <main id="main-content"><h1 className="sr-only">{t.map.touristTitle.replace('{city}', city.name)}</h1><ExploreExperience locale={value} city={city} places={mapPlaces} initialPlaceId={initialPlaceId} initialCategory={initialCategory} collectionLabel={guide?.title} requestLocationOnMount={query.locate === '1'} /></main>
+    const initialEditorial = parseEditorialFilter(query.editorial)
+    return <main id="main-content"><h1 className="sr-only">{t.map.touristTitle.replace('{city}', city.name)}</h1><ExploreExperience locale={value} city={city} places={mapPlaces} initialPlaceId={initialPlaceId} initialCategory={initialCategory} initialEditorial={initialEditorial} collectionLabel={guide?.title} requestLocationOnMount={query.locate === '1'} /></main>
   }
   if (section === segments.places[value]) {
     const places = await firebasePlaceRepository.listPlaceSummaries(value, city.id)

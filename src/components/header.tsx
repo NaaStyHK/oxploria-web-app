@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ChevronDown, Heart, Menu, X } from 'lucide-react'
@@ -12,7 +12,7 @@ import { route } from '@/lib/routes'
 import { Brand } from '@/components/brand'
 import { mockRepository } from '@/lib/data/mock-repository'
 import { track } from '@/lib/analytics'
-import { writeLocalePreference } from '@/lib/browser-storage'
+import { ACTIVE_CITY_CHANGED_EVENT, readActiveCityPreference, writeLocalePreference } from '@/lib/browser-storage'
 import { metadataAlternatePath, useMetadataAlternateLinks } from '@/lib/localized-links'
 
 export function Header({ locale }: { locale: Locale }) {
@@ -20,14 +20,17 @@ export function Header({ locale }: { locale: Locale }) {
   const pathname = usePathname()
   const [languageOpen, setLanguageOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [preferredCityId, setPreferredCityId] = useState<string | null>(null)
   const languageRef = useRef<HTMLDivElement>(null)
   const languageButtonRef = useRef<HTMLButtonElement>(null)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const mobileNavigationRef = useRef<HTMLDivElement>(null)
   useMetadataAlternateLinks(languageRef, pathname, languageOpen)
-  const cities = mockRepository.listCities(locale)
+  const cities = useMemo(() => mockRepository.listCities(locale), [locale])
+  const cityIds = useMemo(() => cities.map((city) => city.id), [cities])
   const barcelona = cities[0]
-  const currentCity = cities.find((city) => pathname === route.city(locale, city.slug) || pathname.startsWith(`${route.city(locale, city.slug)}/`)) ?? barcelona
+  const routeCity = cities.find((city) => pathname === route.city(locale, city.slug) || pathname.startsWith(`${route.city(locale, city.slug)}/`))
+  const currentCity = routeCity ?? cities.find((city) => city.id === preferredCityId) ?? barcelona
   const links = [
     { href: route.city(locale, currentCity.slug), label: t.nav.explore },
     { href: route.guides(locale), label: t.nav.guides },
@@ -37,6 +40,18 @@ export function Header({ locale }: { locale: Locale }) {
   const mapHref = route.map(locale, currentCity.slug)
   const favouritesHref = route.favourites(locale)
   const mobileLinks = [links[0], { href: mapHref, label: t.nav.map }, ...links.slice(1), { href: route.search(locale), label: t.search.title }]
+
+  useEffect(() => {
+    const syncPreferredCity = () => setPreferredCityId(readActiveCityPreference(cityIds))
+    const timer = window.setTimeout(syncPreferredCity, 0)
+    window.addEventListener(ACTIVE_CITY_CHANGED_EVENT, syncPreferredCity)
+    window.addEventListener('storage', syncPreferredCity)
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener(ACTIVE_CITY_CHANGED_EVENT, syncPreferredCity)
+      window.removeEventListener('storage', syncPreferredCity)
+    }
+  }, [cityIds])
 
   useEffect(() => {
     const close = (event: MouseEvent) => {
