@@ -32,6 +32,10 @@ const categoryAliases: Record<string, string> = {
 
 export const markerTypes: PlaceMarkerType[] = ['culture', 'nature', 'activity', 'local', 'bar', 'restaurant', 'nightlife', 'generic']
 
+export function getKnownPlaceCategory(categoryId: string): Category | null {
+  return knownCategories.find((category) => category.id === categoryId) ?? null
+}
+
 export function normalizeTaxonomyValue(value: unknown): string {
   return String(value ?? '')
     .normalize('NFD')

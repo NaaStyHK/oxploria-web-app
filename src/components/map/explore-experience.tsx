@@ -4,10 +4,10 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode, type WheelEvent } from 'react'
 import { Layers3, List, LocateFixed, LoaderCircle, Map as MapIcon, MapPin, Search, Star, UsersRound, X } from 'lucide-react'
-import type { City, Coordinates, PlaceSummary } from '@/lib/types'
+import type { Category, City, Coordinates, PlaceSummary } from '@/lib/types'
 import type { Locale } from '@/lib/i18n/config'
 import { getDictionary } from '@/lib/i18n/dictionaries'
-import { distanceInKm, formatDistance, hasCoordinates } from '@/lib/geo'
+import { distanceInKm, formatDistance, hasCoordinates, sortByDistance } from '@/lib/geo'
 import { matchesPlace } from '@/lib/search'
 import { route } from '@/lib/routes'
 import { EmptyState } from '@/components/empty-state'
@@ -16,7 +16,7 @@ import { track } from '@/lib/analytics'
 import { SafeImage } from '@/components/safe-image'
 import { DraggableSheet } from '@/components/map/draggable-sheet'
 import { requestCurrentPosition, type GeolocationFailure } from '@/lib/browser-geolocation'
-import { readPendingLocation } from '@/lib/browser-storage'
+import { readSessionLocation, writeSessionLocation } from '@/lib/browser-storage'
 import { hasEditorialCollection, markerIconPath, markerTypeForCategoryId, type PlaceMarkerType } from '@/lib/place-taxonomy'
 
 const MapCanvas = dynamic(() => import('@/components/map/map-canvas'), { ssr: false, loading: () => <div className="map-canvas skeleton" aria-hidden="true" /> })
@@ -85,10 +85,10 @@ function FilterRail({ label, children }: { label: string; children: ReactNode })
   </div>
 }
 
-export function ExploreExperience({ locale, city, places, initialPosition, initialPlaceId, collectionLabel, requestLocationOnMount = false }: { locale: Locale; city: City; places: PlaceSummary[]; initialPosition?: Coordinates | null; initialPlaceId?: string; collectionLabel?: string; requestLocationOnMount?: boolean }) {
+export function ExploreExperience({ locale, city, places, initialPosition, initialPlaceId, initialCategory, collectionLabel, requestLocationOnMount = false }: { locale: Locale; city: City; places: PlaceSummary[]; initialPosition?: Coordinates | null; initialPlaceId?: string; initialCategory?: Category | null; collectionLabel?: string; requestLocationOnMount?: boolean }) {
   const t = getDictionary(locale)
   const [query, setQuery] = useState('')
-  const [category, setCategory] = useState<string>('all')
+  const [category, setCategory] = useState<string>(initialCategory?.id ?? 'all')
   const [selectedId, setSelectedId] = useState<string | undefined>(initialPlaceId)
   const [userPosition, setUserPosition] = useState<Coordinates | null>(initialPosition ?? null)
   const [locationState, setLocationState] = useState<LocationState>(initialPosition ? 'granted' : 'idle')
@@ -98,17 +98,19 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
   const [mobileView, setMobileView] = useState<'map' | 'list'>('map')
   const [recenterRequest, setRecenterRequest] = useState(0)
   const [visibility, setVisibility] = useState({ key: '', limit: RESULT_BATCH_SIZE })
-  const categories = useMemo(() => [...new Map(places.map((place) => [place.category.id, { id: place.category.id, name: place.categoryName }])).values()]
+  const categories = useMemo(() => [...new Map([...(initialCategory ? [[initialCategory.id, { id: initialCategory.id, name: initialCategory.name[locale] }] as const] : []), ...places.map((place) => [place.category.id, { id: place.category.id, name: place.categoryName }] as const)]).values()]
     .sort((a, b) => {
       const typeDifference = categoryOrder.indexOf(markerTypeForCategoryId(a.id)) - categoryOrder.indexOf(markerTypeForCategoryId(b.id))
       return typeDifference || a.name.localeCompare(b.name, locale)
-    }), [places, locale])
+    }), [places, locale, initialCategory])
   const locationActive = proximityActive && locationState === 'granted' && userPosition !== null
-  const filtered = useMemo(() => places
-    .filter((place) => category === 'all' || place.category.id === category)
-    .filter((place) => !editorialSelection || hasEditorialCollection(place, editorialSelection))
-    .filter((place) => matchesPlace(place, query))
-    .sort((a, b) => locationActive && userPosition ? (a.coordinates ? distanceInKm(userPosition, a.coordinates) : Number.POSITIVE_INFINITY) - (b.coordinates ? distanceInKm(userPosition, b.coordinates) : Number.POSITIVE_INFINITY) : Number(b.featured) - Number(a.featured)), [places, category, editorialSelection, query, locationActive, userPosition])
+  const filtered = useMemo(() => {
+    const matches = places
+      .filter((place) => category === 'all' || place.category.id === category)
+      .filter((place) => !editorialSelection || hasEditorialCollection(place, editorialSelection))
+      .filter((place) => matchesPlace(place, query))
+    return locationActive && userPosition ? sortByDistance(matches, userPosition) : matches.sort((a, b) => Number(b.featured) - Number(a.featured))
+  }, [places, category, editorialSelection, query, locationActive, userPosition])
   const mappablePlaces = useMemo(() => filtered.filter(hasCoordinates), [filtered])
   const validSelectedId = selectedId && filtered.some((place) => place.id === selectedId) ? selectedId : undefined
   const selected = places.find((place) => place.id === validSelectedId)
@@ -127,6 +129,7 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
     const result = await requestCurrentPosition()
     if (result.ok) {
       setUserPosition(result.coordinates)
+      writeSessionLocation(result.coordinates)
       setLocationState('granted')
       setProximityActive(true)
       setSelectedId(undefined)
@@ -141,7 +144,7 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
 
   useEffect(() => {
     track('map_opened', { city: city.id })
-    const pending = readPendingLocation()
+    const pending = readSessionLocation()
     if (pending) queueMicrotask(() => { setUserPosition(pending); setLocationState('granted'); setProximityActive(true); setMobileView('map'); setRecenterRequest((value) => value + 1) })
     else if (requestLocationOnMount) queueMicrotask(() => { void requestLocation() })
   }, [city.id, requestLocation, requestLocationOnMount])

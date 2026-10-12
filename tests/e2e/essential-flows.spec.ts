@@ -63,16 +63,66 @@ test('category pages handle many, one and zero places', async ({ page }) => {
   await page.goto('/fr/barcelone/categories/culture-lieux')
   await expect(page.locator('main h1')).toHaveText('Culture & lieux')
   await expect(page.locator('.category-count')).toHaveText('205 lieux')
-  await expect(page.locator('.category-results .place-card')).toHaveCount(205)
+  await expect(page.locator('.category-results .place-card')).toHaveCount(36)
+  await expect(page.getByRole('button', { name: 'Afficher plus' })).toBeVisible()
 
   await page.goto('/fr/barcelone/categories/loisirs-activites')
   await expect(page.locator('.category-count')).toHaveText('1 lieu')
   await expect(page.locator('.category-results .place-card')).toHaveCount(1)
+  await expect(page.getByRole('link', { name: 'Voir sur la carte' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Autour de moi' })).toBeVisible()
 
   await page.goto('/fr/barcelone/categories/architecture')
   await expect(page.locator('.category-count')).toHaveText('Aucun lieu')
   await expect(page.locator('.category-empty')).toBeVisible()
   await expect(page.locator('.category-related-links a')).toHaveCount(5)
+  await expect(page.getByRole('link', { name: 'Voir sur la carte' })).toHaveAttribute('href', /category=architecture$/)
+})
+
+test('category map actions preserve the stable category filter', async ({ page }) => {
+  for (const item of [
+    { path: '/fr/barcelone/categories/culture-lieux', category: 'Culture & lieux' },
+    { path: '/fr/la-rochelle/categories/nature-plein-air', category: 'Nature & plein air' },
+    { path: '/fr/barcelone/categories/architecture', category: 'Architecture' },
+  ]) {
+    await page.goto(item.path)
+    await page.getByRole('link', { name: 'Voir sur la carte' }).click()
+    await expect(page).toHaveURL(/\/carte\?category=/)
+    await expect(page.getByRole('button', { name: item.category })).toHaveAttribute('aria-pressed', 'true')
+  }
+})
+
+test('category nearby sorts the complete collection and carries session proximity to the map', async ({ browser }) => {
+  const context = await browser.newContext({ permissions: ['geolocation'], geolocation: { latitude: 41.385, longitude: 2.173 } })
+  const page = await context.newPage()
+  await page.goto('/fr/barcelone/categories/culture-lieux')
+  await page.getByRole('button', { name: 'Autour de moi' }).click()
+  await expect(page.getByRole('button', { name: 'Par distance' })).toHaveAttribute('aria-pressed', 'true')
+  const distanceLocator = page.locator('.category-directory .place-card-footer .mono')
+  await expect(distanceLocator.first()).toBeVisible()
+  const parseDistance = (value: string) => value.includes('km') ? Number.parseFloat(value.replace(',', '.')) * 1000 : Number.parseFloat(value)
+  const firstBatch = (await distanceLocator.allTextContents()).map(parseDistance)
+  expect(firstBatch.length).toBe(36)
+  expect(firstBatch).toEqual([...firstBatch].sort((a, b) => a - b))
+  while (await page.getByRole('button', { name: 'Afficher plus' }).isVisible()) await page.getByRole('button', { name: 'Afficher plus' }).click()
+  const allDistances = (await distanceLocator.allTextContents()).map(parseDistance)
+  expect(allDistances.length).toBe(205)
+  expect(allDistances).toEqual([...allDistances].sort((a, b) => a - b))
+  await page.getByRole('link', { name: 'Voir sur la carte' }).click()
+  await expect(page.getByRole('button', { name: 'Culture & lieux' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Autour de moi' })).toHaveAttribute('aria-pressed', 'true')
+  await context.close()
+})
+
+test('category nearby refusal keeps the normal list usable', async ({ browser }) => {
+  const context = await browser.newContext()
+  const page = await context.newPage()
+  await page.goto('/fr/barcelone/categories/culture-lieux')
+  const firstPlace = await page.locator('.category-directory .place-card h3').first().innerText()
+  await page.getByRole('button', { name: 'Autour de moi' }).click()
+  await expect(page.getByRole('status')).toContainText(/refusé|indisponible|impossible/i)
+  await expect(page.locator('.category-directory .place-card h3').first()).toHaveText(firstPlace)
+  await context.close()
 })
 
 test('category pages localize their content and preserve translated routes', async ({ page }) => {
@@ -88,6 +138,12 @@ test('category pages localize their content and preserve translated routes', asy
     await expect(page.locator('.category-results h2')).toHaveText(item.heading)
     await expect(page.locator('.category-intro')).not.toBeEmpty()
   }
+  await page.goto('/es/la-rochelle/categorias/naturaleza-aire-libre')
+  await expect(page.getByRole('link', { name: 'Ver en el mapa' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Cerca de mí' })).toBeVisible()
+  await page.goto('/en/la-rochelle/categories/nature-outdoors')
+  await expect(page.getByRole('link', { name: 'View on map' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Near me' })).toBeVisible()
 })
 
 for (const legalPage of [

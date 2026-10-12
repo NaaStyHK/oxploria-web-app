@@ -3,7 +3,7 @@ import type { Coordinates } from '@/lib/types'
 
 const LOCALE_KEY = 'oxploria-locale'
 const FAVOURITES_KEY = 'oxploria-favourites'
-const PENDING_LOCATION_KEY = 'oxploria-pending-location'
+const SESSION_LOCATION_KEY = 'oxploria-session-location'
 const ACTIVE_CITY_KEY = 'oxploria-active-city'
 
 export function readLocalePreference(): Locale | null {
@@ -38,19 +38,18 @@ export function writeFavouriteIds(ids: string[]): boolean {
   }
 }
 
-export function writePendingLocation(coordinates: Coordinates): boolean {
+export function writeSessionLocation(coordinates: Coordinates): boolean {
   try {
-    sessionStorage.setItem(PENDING_LOCATION_KEY, JSON.stringify(coordinates))
+    sessionStorage.setItem(SESSION_LOCATION_KEY, JSON.stringify(coordinates))
     return true
   } catch {
     return false
   }
 }
 
-export function readPendingLocation(): Coordinates | null {
+export function readSessionLocation(): Coordinates | null {
   try {
-    const value: unknown = JSON.parse(sessionStorage.getItem(PENDING_LOCATION_KEY) ?? 'null')
-    sessionStorage.removeItem(PENDING_LOCATION_KEY)
+    const value: unknown = JSON.parse(sessionStorage.getItem(SESSION_LOCATION_KEY) ?? 'null')
     if (!value || typeof value !== 'object') return null
     const { latitude, longitude } = value as Partial<Coordinates>
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude ?? 91) > 90 || Math.abs(longitude ?? 181) > 180) return null

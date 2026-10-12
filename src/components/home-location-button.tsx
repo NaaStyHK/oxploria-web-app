@@ -9,7 +9,7 @@ import { route } from '@/lib/routes'
 import { distanceInKm } from '@/lib/geo'
 import { track } from '@/lib/analytics'
 import { requestCurrentPosition, type GeolocationFailure } from '@/lib/browser-geolocation'
-import { writePendingLocation } from '@/lib/browser-storage'
+import { writeSessionLocation } from '@/lib/browser-storage'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 
 export function HomeLocationButton({ locale, cities, label, locatingLabel }: { locale: Locale; cities: City[]; label: string; locatingLabel: string }) {
@@ -26,7 +26,7 @@ export function HomeLocationButton({ locale, cities, label, locatingLabel }: { l
     }
     const city = [...cities].sort((a, b) => distanceInKm(result.coordinates, a.coordinates) - distanceInKm(result.coordinates, b.coordinates))[0]
     track('location_granted')
-    const stored = writePendingLocation(result.coordinates)
+    const stored = writeSessionLocation(result.coordinates)
     router.push(`${route.map(locale, city.slug)}${stored ? '' : '?locate=1'}`)
   }
   const message = state === 'insecure' ? t.map.locationInsecure : state === 'denied' ? t.map.locationDenied : state === 'unavailable' ? t.map.locationUnavailable : state === 'timeout' ? t.map.locationTimeout : state === 'unsupported' ? t.map.locationUnsupported : state === 'error' ? t.map.locationError : null

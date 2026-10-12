@@ -15,8 +15,11 @@ test('homepage, map and categories do not create horizontal page overflow at tar
     await expectNoPageOverflow(page)
     await page.goto('/fr/barcelone/carte')
     await expectNoPageOverflow(page)
-    await page.goto('/fr/barcelone/categories/architecture')
-    await expectNoPageOverflow(page)
+    for (const categoryPath of ['/fr/barcelone/categories/culture-lieux', '/fr/la-rochelle/categories/nature-plein-air', '/fr/barcelone/categories/architecture']) {
+      await page.goto(categoryPath)
+      await expect(page.locator('.category-actions')).toBeVisible()
+      await expectNoPageOverflow(page)
+    }
   }
 })
 

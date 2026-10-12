@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { normalizeFirebasePlace, safeHttpUrl, safeImageUrl } from '@/lib/data/firebase-adapter'
 import { withFirestoreRetry } from '@/lib/data/firestore-retry'
 import { toPlaceSummary } from '@/lib/data/place-summary'
-import { normalizePlaceCoordinates, parseFirebaseCoordinates } from '@/lib/geo'
+import { distanceInKm, formatDistance, normalizePlaceCoordinates, parseFirebaseCoordinates, sortByDistance } from '@/lib/geo'
 import { resolvePlaceCategory } from '@/lib/place-taxonomy'
 import { documentIdFromPlaceSlug, placeSlug, slugify } from '@/lib/slug'
 import { siteUrlFromEnvironment } from '@/lib/site-url'
@@ -28,6 +28,21 @@ describe('coordinates and taxonomy', () => {
     expect(parseFirebaseCoordinates({ _lat: 41.38, _long: 2.17 })).toEqual({ latitude: 41.38, longitude: 2.17 })
     expect(normalizePlaceCoordinates({ location: 'bad', lat: '46.15', lng: '-1.15' })).toEqual({ latitude: 46.15, longitude: -1.15 })
     expect(parseFirebaseCoordinates('91,2')).toBeNull()
+  })
+
+  it('calculates, formats and stably sorts distances', () => {
+    const origin = { latitude: 41.385, longitude: 2.173 }
+    expect(distanceInKm(origin, { latitude: 41.386, longitude: 2.173 })).toBeCloseTo(.111, 2)
+    expect(formatDistance(.32, 'fr')).toBe('320 m')
+    expect(formatDistance(1.24, 'fr')).toBe('1,2 km')
+    expect(formatDistance(1.24, 'en')).toBe('1.2 km')
+    const places = [
+      { id: 'far', coordinates: { latitude: 41.4, longitude: 2.173 } },
+      { id: 'same-a', coordinates: origin },
+      { id: 'same-b', coordinates: origin },
+      { id: 'missing', coordinates: null },
+    ]
+    expect(sortByDistance(places, origin).map((place) => place.id)).toEqual(['same-a', 'same-b', 'far', 'missing'])
   })
 
   it('normalizes known and unknown categories', () => {

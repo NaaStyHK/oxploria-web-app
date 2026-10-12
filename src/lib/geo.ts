@@ -58,3 +58,10 @@ export function formatDistance(kilometres: number, locale: Locale): string {
   if (kilometres < 1) return `${Math.max(10, Math.round((kilometres * 1000) / 10) * 10)} m`
   return `${new Intl.NumberFormat(locale, { maximumFractionDigits: kilometres < 10 ? 1 : 0 }).format(kilometres)} km`
 }
+
+export function sortByDistance<T extends { coordinates: Coordinates | null }>(places: T[], from: Coordinates): T[] {
+  return places
+    .map((place, index) => ({ place, index, distance: place.coordinates ? distanceInKm(from, place.coordinates) : Number.POSITIVE_INFINITY }))
+    .sort((a, b) => a.distance - b.distance || a.index - b.index)
+    .map(({ place }) => place)
+}
