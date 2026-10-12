@@ -1,5 +1,6 @@
 import { isLocale, type Locale } from '@/lib/i18n/config'
 import type { Coordinates } from '@/lib/types'
+import type { NearbyPosition } from '@/lib/nearby-position'
 
 const LOCALE_KEY = 'oxploria-locale'
 const FAVOURITES_KEY = 'oxploria-favourites'
@@ -41,7 +42,7 @@ export function writeFavouriteIds(ids: string[]): boolean {
   }
 }
 
-export function writeSessionLocation(coordinates: Coordinates): boolean {
+export function writeSessionLocation(coordinates: Coordinates | NearbyPosition): boolean {
   try {
     sessionStorage.setItem(SESSION_LOCATION_KEY, JSON.stringify(coordinates))
     return true
@@ -50,16 +51,25 @@ export function writeSessionLocation(coordinates: Coordinates): boolean {
   }
 }
 
-export function readSessionLocation(): Coordinates | null {
+export function readSessionLocation(): NearbyPosition | null {
   try {
     const value: unknown = JSON.parse(sessionStorage.getItem(SESSION_LOCATION_KEY) ?? 'null')
     if (!value || typeof value !== 'object') return null
-    const { latitude, longitude } = value as Partial<Coordinates>
+    const { latitude, longitude, accuracy, timestamp } = value as Partial<NearbyPosition>
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude ?? 91) > 90 || Math.abs(longitude ?? 181) > 180) return null
-    return { latitude: latitude as number, longitude: longitude as number }
+    return {
+      latitude: latitude as number,
+      longitude: longitude as number,
+      accuracy: Number.isFinite(accuracy) && (accuracy as number) >= 0 ? accuracy as number : 0,
+      timestamp: Number.isFinite(timestamp) ? timestamp as number : Date.now(),
+    }
   } catch {
     return null
   }
+}
+
+export function clearSessionLocation(): void {
+  try { sessionStorage.removeItem(SESSION_LOCATION_KEY) } catch { /* Storage can be disabled. */ }
 }
 
 export function readActiveCityPreference(availableCityIds: string[]): string | null {

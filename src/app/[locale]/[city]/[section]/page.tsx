@@ -9,14 +9,13 @@ import { cityRecords } from '@/lib/data/mock-data'
 import { mockRepository } from '@/lib/data/mock-repository'
 import { firebasePlaceRepository } from '@/lib/data/firebase-place-repository'
 import { resolveGuidePlaceIds } from '@/lib/data/guide-place-resolution'
-import { parseFirebaseCoordinates } from '@/lib/geo'
 import { getKnownPlaceCategory } from '@/lib/place-taxonomy'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import { isLocale, locales, type Locale } from '@/lib/i18n/config'
 import { route, segments } from '@/lib/routes'
 import { localizedMetadata } from '@/lib/seo'
 
-type Props = { params: Promise<{ locale: string; city: string; section: string }>; searchParams: Promise<{ lat?: string; lng?: string; place?: string; guide?: string; locate?: string; category?: string }> }
+type Props = { params: Promise<{ locale: string; city: string; section: string }>; searchParams: Promise<{ place?: string; guide?: string; locate?: string; category?: string }> }
 
 export const dynamicParams = false
 
@@ -54,7 +53,6 @@ export default async function CitySectionPage({ params, searchParams }: Props) {
   const t = getDictionary(value)
   if (section === segments.map[value]) {
     const query = await searchParams
-    const initialPosition = query.lat && query.lng ? parseFirebaseCoordinates(`${query.lat}, ${query.lng}`) : null
     const guide = query.guide ? mockRepository.listGuides(value, city.id).find((item) => item.id === query.guide) : null
     const cityPlaces = await firebasePlaceRepository.listPlaceSummaries(value, city.id)
     const guidePlaceIds = guide ? resolveGuidePlaceIds(guide, cityPlaces) : []
@@ -63,7 +61,7 @@ export default async function CitySectionPage({ params, searchParams }: Props) {
     const initialCategory = typeof query.category === 'string'
       ? mapPlaces.find((place) => place.category.id === query.category)?.category ?? getKnownPlaceCategory(query.category)
       : null
-    return <main id="main-content"><h1 className="sr-only">{t.map.touristTitle.replace('{city}', city.name)}</h1><ExploreExperience locale={value} city={city} places={mapPlaces} initialPosition={initialPosition} initialPlaceId={initialPlaceId} initialCategory={initialCategory} collectionLabel={guide?.title} requestLocationOnMount={query.locate === '1'} /></main>
+    return <main id="main-content"><h1 className="sr-only">{t.map.touristTitle.replace('{city}', city.name)}</h1><ExploreExperience locale={value} city={city} places={mapPlaces} initialPlaceId={initialPlaceId} initialCategory={initialCategory} collectionLabel={guide?.title} requestLocationOnMount={query.locate === '1'} /></main>
   }
   if (section === segments.places[value]) {
     const places = await firebasePlaceRepository.listPlaceSummaries(value, city.id)

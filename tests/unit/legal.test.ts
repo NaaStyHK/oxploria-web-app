@@ -22,7 +22,7 @@ describe('localized legal documents', () => {
 
   it('documents every browser storage key', () => {
     const text = JSON.stringify(getLegalDocument('fr', 'cookies'))
-    for (const key of ['oxploria-locale', 'oxploria-active-city', 'oxploria-favourites', 'oxploria-pending-location']) expect(text).toContain(key)
+    for (const key of ['oxploria-locale', 'oxploria-active-city', 'oxploria-favourites', 'oxploria-session-location']) expect(text).toContain(key)
   })
 
   it('uses the intended public domain in legal records', () => {

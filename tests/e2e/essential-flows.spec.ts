@@ -47,6 +47,73 @@ test('simulated geolocation activates proximity mode', async ({ browser }) => {
   await context.close()
 })
 
+test('nearby mode ignores GPS drift and accepts a walk beyond 200 metres', async ({ browser }) => {
+  const start = { latitude: 41.385, longitude: 2.173 }
+  const context = await browser.newContext({ permissions: ['geolocation'], geolocation: start })
+  const page = await context.newPage()
+  await page.goto('/fr/barcelone/categories/culture-lieux')
+  await page.getByRole('button', { name: 'Autour de moi' }).click()
+  await expect(page.getByRole('button', { name: 'Par distance' })).toHaveAttribute('aria-pressed', 'true')
+
+  const storedLatitude = async () => page.evaluate(() => {
+    const value = JSON.parse(sessionStorage.getItem('oxploria-session-location') ?? 'null')
+    return value?.latitude as number | undefined
+  })
+  await expect.poll(storedLatitude).toBeCloseTo(start.latitude, 5)
+
+  const about100m = { latitude: start.latitude + 0.0009, longitude: start.longitude }
+  await context.setGeolocation(about100m)
+  await page.waitForTimeout(500)
+  expect(await storedLatitude()).toBeCloseTo(start.latitude, 5)
+
+  const over200m = { latitude: start.latitude + 0.0027, longitude: start.longitude }
+  await context.setGeolocation(over200m)
+  await expect.poll(storedLatitude).toBeCloseTo(over200m.latitude, 5)
+  await expect(page.locator('.category-directory .place-card-footer .mono').first()).toBeVisible()
+  await context.close()
+})
+
+test('map updates the session position without passive recenter and recentres on a manual refresh', async ({ browser }) => {
+  const start = { latitude: 41.385, longitude: 2.173 }
+  const context = await browser.newContext({ permissions: ['geolocation'], geolocation: start })
+  const page = await context.newPage()
+  await page.goto('/fr/barcelone/carte')
+  const nearbyButton = page.getByRole('button', { name: 'Autour de moi' }).first()
+  await nearbyButton.click()
+  await expect(nearbyButton).toHaveAttribute('aria-pressed', 'true')
+  const map = page.locator('.map-canvas').last()
+  await expect(map).toHaveAttribute('data-recenter-request', '1')
+
+  const moved = { latitude: start.latitude + 0.003, longitude: start.longitude }
+  await context.setGeolocation(moved)
+  await expect.poll(() => page.evaluate(() => {
+    const value = JSON.parse(sessionStorage.getItem('oxploria-session-location') ?? 'null')
+    return value?.latitude as number | undefined
+  })).toBeCloseTo(moved.latitude, 5)
+  await expect(map).toHaveAttribute('data-recenter-request', '1')
+
+  await nearbyButton.click()
+  await expect(map).toHaveAttribute('data-recenter-request', '2')
+  await context.close()
+})
+
+test('city nearby results refresh while moving and the last position follows navigation', async ({ browser }) => {
+  const start = { latitude: 41.385, longitude: 2.173 }
+  const context = await browser.newContext({ permissions: ['geolocation'], geolocation: start })
+  const page = await context.newPage()
+  await page.goto('/fr/barcelone')
+  await page.getByRole('button', { name: 'Voir les lieux proches' }).click()
+  const firstDistance = page.locator('.city-nearby-section .place-card-footer .mono').first()
+  await expect(firstDistance).toBeVisible()
+  const before = await firstDistance.textContent()
+
+  await context.setGeolocation({ latitude: start.latitude + 0.0045, longitude: start.longitude })
+  await expect.poll(async () => firstDistance.textContent()).not.toBe(before)
+  await page.goto('/fr/barcelone/carte')
+  await expect(page.getByRole('button', { name: 'Autour de moi' }).first()).toHaveAttribute('aria-pressed', 'true')
+  await context.close()
+})
+
 test('search, guide and 404', async ({ page }) => {
   test.setTimeout(90_000)
   await page.goto('/fr/recherche')

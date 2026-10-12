@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode, type WheelEvent } from 'react'
 import { Layers3, List, LocateFixed, LoaderCircle, Map as MapIcon, MapPin, Search, Star, UsersRound, X } from 'lucide-react'
-import type { Category, City, Coordinates, PlaceSummary } from '@/lib/types'
+import type { Category, City, PlaceSummary } from '@/lib/types'
 import type { Locale } from '@/lib/i18n/config'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import { distanceInKm, formatDistance, hasCoordinates, sortByDistance } from '@/lib/geo'
@@ -15,13 +15,11 @@ import { PlaceCard } from '@/components/place-card'
 import { track } from '@/lib/analytics'
 import { SafeImage } from '@/components/safe-image'
 import { DraggableSheet } from '@/components/map/draggable-sheet'
-import { requestCurrentPosition, type GeolocationFailure } from '@/lib/browser-geolocation'
-import { readSessionLocation, writeSessionLocation } from '@/lib/browser-storage'
 import { hasEditorialCollection, markerIconPath, markerTypeForCategoryId, type PlaceMarkerType } from '@/lib/place-taxonomy'
+import { useNearbyPosition } from '@/hooks/use-nearby-position'
 
 const MapCanvas = dynamic(() => import('@/components/map/map-canvas'), { ssr: false, loading: () => <div className="map-canvas skeleton" aria-hidden="true" /> })
 
-type LocationState = 'idle' | 'loading' | 'granted' | GeolocationFailure
 type EditorialSelection = 'Incontournables' | 'En famille'
 
 const categoryOrder: PlaceMarkerType[] = ['culture', 'nature', 'activity', 'local', 'bar', 'restaurant', 'nightlife', 'generic']
@@ -85,25 +83,25 @@ function FilterRail({ label, children }: { label: string; children: ReactNode })
   </div>
 }
 
-export function ExploreExperience({ locale, city, places, initialPosition, initialPlaceId, initialCategory, collectionLabel, requestLocationOnMount = false }: { locale: Locale; city: City; places: PlaceSummary[]; initialPosition?: Coordinates | null; initialPlaceId?: string; initialCategory?: Category | null; collectionLabel?: string; requestLocationOnMount?: boolean }) {
+export function ExploreExperience({ locale, city, places, initialPlaceId, initialCategory, collectionLabel, requestLocationOnMount = false }: { locale: Locale; city: City; places: PlaceSummary[]; initialPlaceId?: string; initialCategory?: Category | null; collectionLabel?: string; requestLocationOnMount?: boolean }) {
   const t = getDictionary(locale)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<string>(initialCategory?.id ?? 'all')
   const [selectedId, setSelectedId] = useState<string | undefined>(initialPlaceId)
-  const [userPosition, setUserPosition] = useState<Coordinates | null>(initialPosition ?? null)
-  const [locationState, setLocationState] = useState<LocationState>(initialPosition ? 'granted' : 'idle')
-  const [proximityActive, setProximityActive] = useState(Boolean(initialPosition))
+  const { position: userPosition, state: locationState, active: nearbyActive, activate, deactivate } = useNearbyPosition()
+  const [proximityActive, setProximityActive] = useState(false)
   const [editorialSelection, setEditorialSelection] = useState<EditorialSelection | null>(null)
   const [mapError, setMapError] = useState(false)
   const [mobileView, setMobileView] = useState<'map' | 'list'>('map')
   const [recenterRequest, setRecenterRequest] = useState(0)
+  const restoredPositionAppliedRef = useRef(false)
   const [visibility, setVisibility] = useState({ key: '', limit: RESULT_BATCH_SIZE })
   const categories = useMemo(() => [...new Map([...(initialCategory ? [[initialCategory.id, { id: initialCategory.id, name: initialCategory.name[locale] }] as const] : []), ...places.map((place) => [place.category.id, { id: place.category.id, name: place.categoryName }] as const)]).values()]
     .sort((a, b) => {
       const typeDifference = categoryOrder.indexOf(markerTypeForCategoryId(a.id)) - categoryOrder.indexOf(markerTypeForCategoryId(b.id))
       return typeDifference || a.name.localeCompare(b.name, locale)
     }), [places, locale, initialCategory])
-  const locationActive = proximityActive && locationState === 'granted' && userPosition !== null
+  const locationActive = proximityActive && nearbyActive
   const filtered = useMemo(() => {
     const matches = places
       .filter((place) => category === 'all' || place.category.id === category)
@@ -125,12 +123,10 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
   const showMore = () => setVisibility({ key: visibilityKey, limit: visibleLimit + RESULT_BATCH_SIZE })
 
   const requestLocation = useCallback(async () => {
-    track('location_requested'); setLocationState('loading')
-    const result = await requestCurrentPosition()
+    track('location_requested')
+    const result = await activate()
     if (result.ok) {
-      setUserPosition(result.coordinates)
-      writeSessionLocation(result.coordinates)
-      setLocationState('granted')
+      restoredPositionAppliedRef.current = true
       setProximityActive(true)
       setSelectedId(undefined)
       setMobileView('map')
@@ -138,31 +134,29 @@ export function ExploreExperience({ locale, city, places, initialPosition, initi
       track('location_granted')
       return
     }
-    setLocationState(result.reason)
     track('location_denied', { reason: result.reason })
-  }, [setLocationState, setSelectedId, setUserPosition, setMobileView, setRecenterRequest])
+  }, [activate, setSelectedId, setMobileView, setRecenterRequest])
 
   useEffect(() => {
     track('map_opened', { city: city.id })
-    const pending = readSessionLocation()
-    if (pending) queueMicrotask(() => { setUserPosition(pending); setLocationState('granted'); setProximityActive(true); setMobileView('map'); setRecenterRequest((value) => value + 1) })
-    else if (requestLocationOnMount) queueMicrotask(() => { void requestLocation() })
+    if (requestLocationOnMount) queueMicrotask(() => { void requestLocation() })
   }, [city.id, requestLocation, requestLocationOnMount])
 
+  useEffect(() => {
+    if (!nearbyActive || !userPosition || restoredPositionAppliedRef.current) return
+    restoredPositionAppliedRef.current = true
+    setProximityActive(true)
+    setMobileView('map')
+    setRecenterRequest((value) => value + 1)
+  }, [nearbyActive, userPosition])
+
   const handleNearMe = () => {
-    if (userPosition && locationState === 'granted') {
-      setProximityActive(true)
-      setSelectedId(undefined)
-      setMobileView('map')
-      setRecenterRequest((value) => value + 1)
-      return
-    }
     void requestLocation()
   }
 
   const selectPlace = useCallback((id: string) => { setSelectedId(id); setMobileView('map'); track('place_marker_clicked', { placeId: id }) }, [setSelectedId, setMobileView])
   const locationMessage = locationState === 'insecure' ? t.map.locationInsecure : locationState === 'denied' ? t.map.locationDenied : locationState === 'unavailable' ? t.map.locationUnavailable : locationState === 'timeout' ? t.map.locationTimeout : locationState === 'unsupported' ? t.map.locationUnsupported : locationState === 'error' ? t.map.locationError : null
-  const reset = () => { setQuery(''); setCategory('all'); setEditorialSelection(null); setProximityActive(false); setSelectedId(undefined) }
+  const reset = () => { setQuery(''); setCategory('all'); setEditorialSelection(null); setProximityActive(false); setSelectedId(undefined); deactivate() }
   const toggleEditorial = (selection: EditorialSelection) => setEditorialSelection((current) => current === selection ? null : selection)
 
   return <div className={`explore-shell mobile-view-${mobileView}`}><div className="explore-grid">

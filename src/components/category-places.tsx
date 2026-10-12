@@ -5,50 +5,25 @@ import { Check, LoaderCircle, LocateFixed, Map as MapIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { EmptyState } from '@/components/empty-state'
 import { PlaceCard } from '@/components/place-card'
-import { requestCurrentPosition, type GeolocationFailure } from '@/lib/browser-geolocation'
-import { readSessionLocation, writeSessionLocation } from '@/lib/browser-storage'
 import { distanceInKm, formatDistance, sortByDistance } from '@/lib/geo'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import type { Locale } from '@/lib/i18n/config'
-import type { Coordinates, PlaceSummary } from '@/lib/types'
+import type { PlaceSummary } from '@/lib/types'
+import { useNearbyPosition } from '@/hooks/use-nearby-position'
 
 const PAGE_SIZE = 36
-type LocationState = 'idle' | 'loading' | 'granted' | GeolocationFailure
 
 export function CategoryPlaces({ locale, places, mapHref, emptyTitle, emptyBody }: { locale: Locale; places: PlaceSummary[]; mapHref: string; emptyTitle: string; emptyBody: string }) {
   const t = getDictionary(locale)
-  const [position, setPosition] = useState<Coordinates | null>(null)
-  const [locationState, setLocationState] = useState<LocationState>('idle')
+  const { position, state: locationState, active: locationActive, activate } = useNearbyPosition()
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
-  const locationActive = locationState === 'granted' && position !== null
-  const orderedPlaces = useMemo(() => locationActive ? sortByDistance(places, position) : places, [places, locationActive, position])
+  const orderedPlaces = useMemo(() => locationActive && position ? sortByDistance(places, position) : places, [places, locationActive, position])
   const visiblePlaces = orderedPlaces.slice(0, visibleCount)
   const locationMessage = locationState === 'insecure' ? t.map.locationInsecure : locationState === 'denied' ? t.map.locationDenied : locationState === 'unavailable' ? t.map.locationUnavailable : locationState === 'timeout' ? t.map.locationTimeout : locationState === 'unsupported' ? t.map.locationUnsupported : locationState === 'error' ? t.map.locationError : null
 
-  const activatePosition = (coordinates: Coordinates) => {
-    setPosition(coordinates)
-    setLocationState('granted')
-    setVisibleCount(PAGE_SIZE)
-  }
-
   const locate = async () => {
-    if (position && locationState === 'granted') {
-      setVisibleCount(PAGE_SIZE)
-      return
-    }
-    const stored = readSessionLocation()
-    if (stored) {
-      activatePosition(stored)
-      return
-    }
-    setLocationState('loading')
-    const result = await requestCurrentPosition()
-    if (result.ok) {
-      writeSessionLocation(result.coordinates)
-      activatePosition(result.coordinates)
-      return
-    }
-    setLocationState(result.reason)
+    await activate()
+    setVisibleCount(PAGE_SIZE)
   }
 
   return <div className="category-directory">
@@ -58,6 +33,6 @@ export function CategoryPlaces({ locale, places, mapHref, emptyTitle, emptyBody 
     </div>
     {locationMessage && <div className="notice category-location-notice" role="status">{locationMessage}</div>}
     {locationActive && <span className="sr-only" role="status">{t.map.locationActive}</span>}
-    {orderedPlaces.length ? <><div className="place-grid">{visiblePlaces.map((place, index) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} imagePreload={index === 0} distance={locationActive && place.coordinates ? formatDistance(distanceInKm(position, place.coordinates), locale) : undefined} />)}</div>{visibleCount < orderedPlaces.length && <div className="directory-more"><button type="button" className="button button-dark" onClick={() => setVisibleCount((count) => Math.min(count + PAGE_SIZE, orderedPlaces.length))}>{t.common.showMore}</button></div>}</> : <div className="category-empty"><EmptyState title={emptyTitle} body={emptyBody} /></div>}
+    {orderedPlaces.length ? <><div className="place-grid">{visiblePlaces.map((place, index) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} imagePreload={index === 0} distance={locationActive && position && place.coordinates ? formatDistance(distanceInKm(position, place.coordinates), locale) : undefined} />)}</div>{visibleCount < orderedPlaces.length && <div className="directory-more"><button type="button" className="button button-dark" onClick={() => setVisibleCount((count) => Math.min(count + PAGE_SIZE, orderedPlaces.length))}>{t.common.showMore}</button></div>}</> : <div className="category-empty"><EmptyState title={emptyTitle} body={emptyBody} /></div>}
   </div>
 }

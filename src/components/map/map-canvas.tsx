@@ -192,5 +192,5 @@ export default function MapCanvas({ locale, places, center, zoom, selectedId, us
     return () => observer.disconnect()
   }, [])
 
-  return <div ref={containerRef} className="map-canvas" role="region" aria-label={label} />
+  return <div ref={containerRef} className="map-canvas" role="region" aria-label={label} data-recenter-request={recenterRequest} />
 }
