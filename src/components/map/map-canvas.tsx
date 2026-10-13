@@ -1,5 +1,6 @@
 'use client'
 
+import 'maplibre-gl/dist/maplibre-gl.css'
 import { useEffect, useRef } from 'react'
 import { AttributionControl, GeoJSONSource, Map as MapLibreMap, NavigationControl, setWorkerUrl, type MapLayerMouseEvent } from 'maplibre-gl'
 import type { FeatureCollection, Point } from 'geojson'

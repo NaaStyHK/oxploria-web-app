@@ -16,5 +16,5 @@ export default async function LocaleLayout({ children, params }: { children: Rea
   const { locale } = await params
   if (!isLocale(locale)) notFound()
   const t = getDictionary(locale)
-  return <html lang={locale} data-scroll-behavior="smooth"><body><a className="skip-link" href="#main-content">{t.common.skipToContent}</a><LocaleDocument locale={locale}/><Header locale={locale} />{children}<Footer locale={locale} /></body></html>
+  return <html lang={locale} data-scroll-behavior="smooth"><head><link rel="preload" href="/fonts/geist.woff2" as="font" type="font/woff2" crossOrigin="anonymous" /></head><body><a className="skip-link" href="#main-content">{t.common.skipToContent}</a><LocaleDocument locale={locale}/><Header locale={locale} />{children}<Footer locale={locale} /></body></html>
 }
