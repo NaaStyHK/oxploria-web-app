@@ -28,6 +28,56 @@ test('map, editorial filters, list view and a place detail', async ({ page }) =>
   await expect(page).toHaveURL(/\/fr\/barcelone\/lieux/)
 })
 
+test('place pages disclose localized editorial sources without mixing cities', async ({ page }) => {
+  const barcelonaLocales = [
+    { directory: '/fr/barcelone/lieux', title: 'Sources et vérification', author: 'Rédaction : Oxploria' },
+    { directory: '/es/barcelona/lugares', title: 'Fuentes y verificación', author: 'Redacción: Oxploria' },
+    { directory: '/en/barcelona/places', title: 'Sources and verification', author: 'Written by: Oxploria' },
+  ]
+
+  for (const item of barcelonaLocales) {
+    await page.goto(item.directory)
+    const href = await page.locator('a.place-card-link').first().getAttribute('href')
+    expect(href).toBeTruthy()
+    await page.goto(href!)
+    const sources = page.locator('.editorial-sources')
+    await expect(sources.getByRole('heading', { name: item.title })).toBeVisible()
+    await expect(sources).toContainText(item.author)
+    await expect(sources.locator('li')).toHaveCount(5)
+    await expect(sources.locator('a[target="_blank"][rel="noreferrer"]')).toHaveCount(4)
+    await expect(sources).toContainText('Pobles de Catalunya')
+    const schemaTypes = await page.locator('script[type="application/ld+json"]').evaluateAll((scripts) => scripts.flatMap((script) => JSON.parse(script.textContent || '[]')).map((entry: { '@type'?: string }) => entry['@type']))
+    expect(schemaTypes).toContain('TouristAttraction')
+    expect(schemaTypes).toContain('BreadcrumbList')
+  }
+
+  await page.goto('/fr/la-rochelle/lieux')
+  const href = await page.locator('a.place-card-link').first().getAttribute('href')
+  expect(href).toBeTruthy()
+  await page.goto(href!)
+  const sources = page.locator('.editorial-sources')
+  await expect(sources.getByRole('heading', { name: 'Sources et vérification' })).toBeVisible()
+  await expect(sources).toContainText('Rédaction : Oxploria')
+  await expect(sources.locator('li')).toHaveCount(0)
+  await expect(sources).not.toContainText('Ajuntament de Barcelona')
+  await expect(sources).not.toContainText('Pobles de Catalunya')
+})
+
+test('editorial sources remain bounded on mobile and desktop', async ({ page }) => {
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/fr/barcelone/lieux')
+    const href = await page.locator('a.place-card-link').first().getAttribute('href')
+    expect(href).toBeTruthy()
+    await page.goto(href!)
+    const box = await page.locator('.editorial-sources').boundingBox()
+    expect(box).not.toBeNull()
+    expect(box!.x).toBeGreaterThanOrEqual(0)
+    expect(box!.x + box!.width).toBeLessThanOrEqual(width)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+  }
+})
+
 test('language changes FR to ES to EN', async ({ page }) => {
   await page.goto('/fr')
   await page.getByRole('button', { name: /langue|idioma|language/i }).click()

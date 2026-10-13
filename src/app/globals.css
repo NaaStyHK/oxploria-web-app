@@ -267,6 +267,17 @@ p { max-width: 72ch; }
 .place-content-grid { display: grid; gap: 2rem; align-items: start; }
 .place-article { font-size: 1.06rem; }
 .place-article h2 { margin-top: 3.5rem; margin-bottom: 1rem; }
+.place-sources-section { padding-bottom: var(--section-space); }
+.editorial-sources { display: grid; gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--line); }
+.editorial-sources-heading h2 { margin-bottom: .45rem; font-size: clamp(1.45rem, 3vw, 2rem); }
+.editorial-sources-heading p { margin: 0; color: var(--muted); font-size: .9rem; }
+.editorial-sources-content { max-width: 74ch; }
+.editorial-sources-content > p { margin: 0; color: var(--muted); }
+.editorial-sources-content > p + p { margin-top: .8rem; color: var(--ink); font-weight: 690; }
+.editorial-sources-content ul { display: grid; gap: .55rem; margin: .75rem 0 0; padding: 0; list-style: none; }
+.editorial-sources-content li { min-width: 0; color: var(--muted); font-size: .9rem; line-height: 1.4; }
+.editorial-sources-content a { display: inline-flex; align-items: center; gap: .35rem; color: var(--ink); font-weight: 650; text-underline-offset: .2em; }
+.editorial-sources-content a svg { flex: 0 0 auto; }
 .info-panel { padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--radius); background: var(--white); box-shadow: var(--shadow-small); }
 .info-list { list-style: none; padding: 0; margin: 0; display: grid; }
 .info-list li { display: grid; grid-template-columns: 24px 1fr; gap: .75rem; padding-block: .85rem; border-bottom: 1px solid var(--line); }
@@ -467,6 +478,8 @@ body:has(.explore-shell) .site-footer { display: none; }
   .home-method { grid-template-columns: .88fr 1.12fr; }
   .place-grid, .results-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .place-content-grid { grid-template-columns: minmax(0, 1fr) 340px; }
+  .editorial-sources { grid-template-columns: minmax(220px, .65fr) minmax(0, 1.35fr); gap: var(--space-6); }
+  .editorial-sources-content ul { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-4); }
   .info-panel { position: sticky; top: calc(var(--header-height) + 1rem); }
   .guide-body { grid-template-columns: minmax(0, 1fr) 330px; align-items: start; }
   .legal-layout { grid-template-columns: 240px minmax(0, 760px); gap: clamp(3rem, 7vw, 7rem); }
