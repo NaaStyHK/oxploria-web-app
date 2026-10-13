@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
-const productionOrigin = 'https://oxploria-web-app.vercel.app'
+const productionOrigin = 'https://www.oxploria.com'
+const forbiddenSeoOrigin = 'https://oxploria-web-app.vercel.app'
 
 test('canonical, hreflang and x-default share the configured origin', async ({ page }) => {
   for (const path of ['/fr', '/es/barcelona', '/en/barcelona/guides/things-to-do-gothic-quarter']) {
@@ -11,6 +12,35 @@ test('canonical, hreflang and x-default share the configured origin', async ({ p
     for (const language of ['fr', 'es', 'en', 'x-default']) {
       await expect(page.locator(`link[rel="alternate"][hreflang="${language}"]`)).toHaveAttribute('href', new RegExp(`^${productionOrigin}`))
     }
+  }
+})
+
+test('apostrophes are HTML-escaped only in source and sitemap URLs match parsed canonicals', async ({ page, request }) => {
+  test.setTimeout(120_000)
+  const sitemap = await request.get('/sitemap.xml')
+  expect(sitemap.status()).toBe(200)
+  const sitemapText = await sitemap.text()
+  const sitemapUrls = [...sitemapText.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1])
+  const apostropheUrls = sitemapUrls.filter((url) => url.includes("'"))
+  expect(apostropheUrls).toHaveLength(15)
+
+  for (const expectedCanonical of apostropheUrls) {
+    const path = new URL(expectedCanonical).pathname
+    const response = await page.goto(path)
+    expect(response?.status(), path).toBe(200)
+    const canonical = await page.locator('link[rel="canonical"]').getAttribute('href')
+    expect(canonical, path).toBe(expectedCanonical)
+    expect(canonical, path).not.toContain('&#x27;')
+    expect(canonical, path).not.toContain('%252')
+    for (const language of ['fr', 'es', 'en', 'x-default']) {
+      const href = await page.locator(`link[rel="alternate"][hreflang="${language}"]`).getAttribute('href')
+      expect(href, `${path} ${language}`).toMatch(/^https:\/\/www\.oxploria\.com\//)
+      expect(href, `${path} ${language}`).not.toContain(forbiddenSeoOrigin)
+      expect(href, `${path} ${language}`).not.toContain('%252')
+    }
+    const jsonLd = await page.locator('script[type="application/ld+json"]').allTextContents()
+    expect(jsonLd.join('\n'), path).toContain(productionOrigin)
+    expect(jsonLd.join('\n'), path).not.toContain(forbiddenSeoOrigin)
   }
 })
 
@@ -48,6 +78,7 @@ test('map, search and favorites are noindex while robots and sitemap stay public
   const sitemap = await request.get('/sitemap.xml')
   expect(sitemap.status()).toBe(200)
   const sitemapText = await sitemap.text()
+  expect(sitemapText).not.toContain(forbiddenSeoOrigin)
   expect(sitemapText).toContain(`${productionOrigin}/fr`)
   for (const path of [
     '/fr/barcelone/categories/architecture',

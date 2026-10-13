@@ -5,7 +5,7 @@ import { toPlaceSummary } from '@/lib/data/place-summary'
 import { distanceInKm, formatDistance, normalizePlaceCoordinates, parseFirebaseCoordinates, sortByDistance } from '@/lib/geo'
 import { resolvePlaceCategory } from '@/lib/place-taxonomy'
 import { documentIdFromPlaceSlug, placeSlug, slugify } from '@/lib/slug'
-import { siteUrlFromEnvironment } from '@/lib/site-url'
+import { PRODUCTION_SITE_URL, siteUrlFromEnvironment } from '@/lib/site-url'
 import type { Place, RawFirebasePlace } from '@/lib/types'
 
 const category = resolvePlaceCategory('Architecture')
@@ -79,10 +79,18 @@ describe('PlaceSummary', () => {
 })
 
 describe('site URL and Firestore retry', () => {
-  it('uses explicit URL, then Vercel, and rejects an unconfigured production build', () => {
+  it('keeps explicit and Vercel origins available outside production', () => {
     expect(siteUrlFromEnvironment({ NODE_ENV: 'test', NEXT_PUBLIC_SITE_URL: 'https://stage.example/path' } as NodeJS.ProcessEnv)).toBe('https://stage.example')
     expect(siteUrlFromEnvironment({ NODE_ENV: 'test', VERCEL_PROJECT_PRODUCTION_URL: 'app.vercel.app' } as NodeJS.ProcessEnv)).toBe('https://app.vercel.app')
+    expect(siteUrlFromEnvironment({ NODE_ENV: 'development' } as NodeJS.ProcessEnv)).toBe('http://localhost:3000')
+  })
+
+  it('allows only the official SEO origin in production', () => {
+    expect(siteUrlFromEnvironment({ NODE_ENV: 'production', NEXT_PUBLIC_SITE_URL: `${PRODUCTION_SITE_URL}/ignored-path` } as NodeJS.ProcessEnv)).toBe(PRODUCTION_SITE_URL)
     expect(() => siteUrlFromEnvironment({ NODE_ENV: 'production' } as NodeJS.ProcessEnv)).toThrow(/required/)
+    expect(() => siteUrlFromEnvironment({ NODE_ENV: 'production', VERCEL_PROJECT_PRODUCTION_URL: 'oxploria-web-app.vercel.app' } as NodeJS.ProcessEnv)).toThrow(/required/)
+    expect(() => siteUrlFromEnvironment({ NODE_ENV: 'production', NEXT_PUBLIC_SITE_URL: 'https://oxploria-web-app.vercel.app' } as NodeJS.ProcessEnv)).toThrow(/Production SEO origin/)
+    expect(() => siteUrlFromEnvironment({ NODE_ENV: 'production', NEXT_PUBLIC_SITE_URL: 'https://example.com' } as NodeJS.ProcessEnv)).toThrow(/Production SEO origin/)
   })
 
   it('retries transient failures at most three times and never retries permission errors', async () => {

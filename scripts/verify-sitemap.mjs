@@ -2,6 +2,8 @@ import { spawn } from 'node:child_process'
 
 const port = 3200
 const origin = `http://127.0.0.1:${port}`
+const productionOrigin = 'https://www.oxploria.com'
+const forbiddenSeoOrigin = 'https://oxploria-web-app.vercel.app'
 const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '-p', String(port)], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
 
 const waitForServer = async () => {
@@ -24,8 +26,9 @@ try {
   if (!urls.length) throw new Error('Sitemap contains no URL.')
   const duplicates = urls.filter((url, index) => urls.indexOf(url) !== index)
   if (duplicates.length) throw new Error(`Sitemap contains duplicate URLs: ${[...new Set(duplicates)].slice(0, 5).join(', ')}`)
-  const invalid = urls.filter((url) => !url.startsWith('https://oxploria-web-app.vercel.app/'))
+  const invalid = urls.filter((url) => !url.startsWith(`${productionOrigin}/`))
   if (invalid.length) throw new Error(`Sitemap contains URLs on another origin: ${invalid.slice(0, 5).join(', ')}`)
+  if (xml.includes(forbiddenSeoOrigin)) throw new Error(`Sitemap contains forbidden SEO origin: ${forbiddenSeoOrigin}`)
   const requiredArchitecturePaths = [
     '/fr/barcelone/categories/architecture',
     '/es/barcelona/categorias/arquitectura',
@@ -34,11 +37,11 @@ try {
     '/es/la-rochelle/categorias/arquitectura',
     '/en/la-rochelle/categories/architecture',
   ]
-  const missingArchitecture = requiredArchitecturePaths.filter((path) => !urls.includes(`https://oxploria-web-app.vercel.app${path}`))
+  const missingArchitecture = requiredArchitecturePaths.filter((path) => !urls.includes(`${productionOrigin}${path}`))
   if (missingArchitecture.length) throw new Error(`Sitemap is missing permanent architecture pages: ${missingArchitecture.join(', ')}`)
   const excluded = urls.filter((url) => /\/(?:favoris|favoritos|favorites|recherche|buscar|search)(?:\/|$)/.test(url))
   if (excluded.length) throw new Error(`Sitemap contains noindex product pages: ${excluded.slice(0, 5).join(', ')}`)
-  console.log(`Sitemap verified: ${urls.length} unique URLs on https://oxploria-web-app.vercel.app.`)
+  console.log(`Sitemap verified: ${urls.length} unique URLs on ${productionOrigin}.`)
 } finally {
   server.kill()
 }
