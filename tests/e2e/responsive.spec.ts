@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-const widths = [320, 360, 375, 390, 414, 430, 768, 1024, 1280, 1440, 1920]
+const widths = [320, 360, 375, 390, 414, 430, 768, 900, 1024, 1280, 1440, 1920]
 
 async function expectNoPageOverflow(page: import('@playwright/test').Page) {
   await expect(page.locator('main#main-content:not([aria-busy])').last()).toBeVisible()
@@ -68,6 +68,21 @@ test('favorites navigation adapts from explicit label to compact access without 
     await expectNoPageOverflow(page)
     const labelVisible = await link.locator('span').isVisible()
     expect(labelVisible).toBe(width >= 900)
+  }
+})
+
+test('Explorer city choices remain inside the viewport at every target width', async ({ page }) => {
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 800 })
+    await page.goto('/fr')
+    if (width >= 900) {
+      await page.getByRole('button', { name: 'Explorer', exact: true }).click()
+      await expect(page.locator('#explorer-options')).toBeVisible()
+    } else {
+      await page.getByRole('button', { name: 'Menu' }).click()
+      await expect(page.locator('#mobile-navigation')).toBeVisible()
+    }
+    await expectNoPageOverflow(page)
   }
 })
 

@@ -347,6 +347,68 @@ test('global map link follows the stored city across global pages and languages'
   await expect(page.locator('.header-actions').getByRole('link', { name: 'Map' })).toHaveAttribute('href', '/en/la-rochelle/map')
 })
 
+test('desktop Explorer offers localized city routes and updates the active city', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+
+  await page.goto('/fr')
+  await page.getByRole('button', { name: 'Explorer', exact: true }).click()
+  const frenchOptions = page.locator('#explorer-options')
+  await expect(frenchOptions.getByText('Explorer une ville')).toBeVisible()
+  await frenchOptions.getByRole('link', { name: /^La Rochelle/ }).click()
+  await expect(page).toHaveURL('/fr/la-rochelle')
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('oxploria-active-city'))).toBe('la-rochelle')
+
+  await page.goto('/fr/favoris')
+  await expect(page.locator('.header-actions').getByRole('link', { name: 'Carte' })).toHaveAttribute('href', '/fr/la-rochelle/carte')
+
+  await page.goto('/es')
+  await page.getByRole('button', { name: 'Explorar', exact: true }).click()
+  await page.locator('#explorer-options').getByRole('link', { name: /^Barcelona/ }).click()
+  await expect(page).toHaveURL('/es/barcelona')
+
+  await page.goto('/en')
+  await page.getByRole('button', { name: 'Explore', exact: true }).click()
+  await page.locator('#explorer-options').getByRole('link', { name: /^La Rochelle/ }).click()
+  await expect(page).toHaveURL('/en/la-rochelle')
+})
+
+test('desktop Explorer supports keyboard navigation, Escape and outside click', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto('/fr/barcelone')
+  const trigger = page.getByRole('button', { name: 'Explorer', exact: true })
+
+  await trigger.focus()
+  await trigger.press('Enter')
+  const options = page.locator('#explorer-options')
+  await expect(options).toBeVisible()
+  await expect(options.getByRole('link', { name: /^Barcelone/ })).toBeFocused()
+  await page.keyboard.press('ArrowDown')
+  await expect(options.getByRole('link', { name: /^La Rochelle/ })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(options).toBeHidden()
+  await expect(trigger).toBeFocused()
+
+  await trigger.click()
+  await expect(options).toBeVisible()
+  await page.locator('main').click({ position: { x: 8, y: 120 } })
+  await expect(options).toBeHidden()
+})
+
+test('mobile Explorer exposes both cities and keeps the Cities destination link', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/fr')
+  await page.getByRole('button', { name: 'Menu' }).click()
+  const navigation = page.locator('#mobile-navigation')
+  await expect(navigation.getByText('Explorer une ville')).toBeVisible()
+  await expect(navigation.getByRole('link', { name: /^Barcelone/ })).toBeVisible()
+  await expect(navigation.getByRole('link', { name: /^La Rochelle/ })).toBeVisible()
+  await expect(navigation.getByRole('link', { name: 'Villes', exact: true })).toBeVisible()
+  await navigation.getByRole('link', { name: /^La Rochelle/ }).click()
+  await expect(page).toHaveURL('/fr/la-rochelle')
+  await expect(navigation).toBeHidden()
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('oxploria-active-city'))).toBe('la-rochelle')
+})
+
 test('category pages handle many, one and zero places', async ({ page }) => {
   await page.goto('/fr/barcelone/categories/culture-lieux')
   await expect(page.locator('main h1')).toHaveText('Culture & lieux')
