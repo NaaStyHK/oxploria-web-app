@@ -547,15 +547,56 @@ test('category pages localize their content and preserve translated routes', asy
 })
 
 for (const legalPage of [
-  { locale: 'fr', path: '/fr/mentions-legales', title: 'Mentions légales' },
-  { locale: 'es', path: '/es/privacidad', title: 'Política de privacidad' },
-  { locale: 'en', path: '/en/cookies', title: 'Cookies and local storage' },
+  { locale: 'fr', path: '/fr/confidentialite', title: 'Politique de confidentialité', settings: 'Paramètres de confidentialité et des cookies' },
+  { locale: 'fr', path: '/fr/cookies', title: 'Cookies et stockage local', settings: 'Paramètres de confidentialité et des cookies' },
+  { locale: 'es', path: '/es/privacidad', title: 'Política de privacidad', settings: 'Configuración de privacidad y cookies' },
+  { locale: 'es', path: '/es/cookies', title: 'Cookies y almacenamiento local', settings: 'Configuración de privacidad y cookies' },
+  { locale: 'en', path: '/en/privacy', title: 'Privacy policy', settings: 'Privacy and cookie settings' },
+  { locale: 'en', path: '/en/cookies', title: 'Cookies and local storage', settings: 'Privacy and cookie settings' },
 ] as const) {
-  test(`${legalPage.locale} legal pages expose localized content and cross-links`, async ({ page }) => {
+  test(`${legalPage.locale} ${legalPage.path.split('/').at(-1)} explains AdSense consent and exposes privacy settings`, async ({ page }) => {
     await page.goto(legalPage.path)
     await expect(page.locator('main h1')).toHaveText(legalPage.title)
-    await expect(page.locator('.legal-updated')).toContainText('2026')
+    await expect(page.locator('.legal-updated')).toContainText('14')
+    await expect(page.locator('main')).toContainText('Google AdSense')
     await expect(page.locator('.legal-related a')).toHaveCount(3)
-    await expect(page.locator('footer')).toContainText(/Cookies/)
+    await expect(page.getByRole('button', { name: legalPage.settings })).toBeVisible()
   })
 }
+
+test('footer privacy settings queues the Google revocation message safely', async ({ page }) => {
+  await page.route('https://pagead2.googlesyndication.com/**', (route) => route.abort())
+  await page.addInitScript(() => {
+    window.googlefc = {
+      callbackQueue: [],
+      showRevocationMessage: () => { document.documentElement.dataset.googlePrivacyOpened = 'true' },
+    }
+  })
+  await page.goto('/fr/cookies')
+  await page.getByRole('button', { name: 'Paramètres de confidentialité et des cookies' }).click()
+  await page.evaluate(() => window.googlefc?.callbackQueue?.at(-1)?.())
+  await expect(page.locator('html')).toHaveAttribute('data-google-privacy-opened', 'true')
+})
+
+test('footer privacy settings remains safe before the Google API is available', async ({ page }) => {
+  const pageErrors: Error[] = []
+  page.on('pageerror', (error) => pageErrors.push(error))
+  await page.route('https://pagead2.googlesyndication.com/**', (route) => route.abort())
+  await page.goto('/en/cookies')
+  await page.evaluate(() => { delete window.googlefc })
+  await page.getByRole('button', { name: 'Privacy and cookie settings' }).click()
+  expect(await page.evaluate(() => window.googlefc?.callbackQueue?.length)).toBe(1)
+  expect(pageErrors).toEqual([])
+})
+
+test('footer privacy settings stays within mobile and desktop layouts', async ({ page }) => {
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/fr/cookies')
+    const box = await page.getByRole('button', { name: 'Paramètres de confidentialité et des cookies' }).boundingBox()
+    expect(box).not.toBeNull()
+    expect(box!.x).toBeGreaterThanOrEqual(0)
+    expect(box!.x + box!.width).toBeLessThanOrEqual(width)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+  }
+})

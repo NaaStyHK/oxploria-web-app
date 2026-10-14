@@ -5,6 +5,7 @@ import { route } from '@/lib/routes'
 import { Brand } from '@/components/brand'
 import { mockRepository } from '@/lib/data/mock-repository'
 import { FooterLanguageLinks } from '@/components/footer-language-links'
+import { PrivacySettingsButton } from '@/components/privacy-settings-button'
 
 export function Footer({ locale }: { locale: Locale }) {
   const t = getDictionary(locale)
@@ -15,7 +16,7 @@ export function Footer({ locale }: { locale: Locale }) {
       <div className="footer-columns">
         <div className="footer-column"><h3>{t.footer.explore}</h3>{cities.map((city) => <Link key={city.id} href={route.city(locale, city.slug)}>{city.name}</Link>)}<Link href={route.guides(locale)}>{t.nav.guides}</Link><Link href={route.search(locale)}>{t.search.title}</Link></div>
         <div className="footer-column"><h3>{t.footer.company}</h3><Link href={route.page(locale, 'about')}>{t.nav.about}</Link><Link href={route.page(locale, 'contact')}>{t.legal.contactTitle}</Link></div>
-        <div className="footer-column"><h3>{t.footer.legal}</h3><Link href={route.page(locale, 'privacy')}>{t.footer.privacy}</Link><Link href={route.page(locale, 'cookies')}>{t.footer.cookies}</Link><Link href={route.page(locale, 'legal')}>{t.legal.legalTitle}</Link><Link href={route.page(locale, 'terms')}>{t.footer.terms}</Link></div>
+        <div className="footer-column"><h3>{t.footer.legal}</h3><Link href={route.page(locale, 'privacy')}>{t.footer.privacy}</Link><Link href={route.page(locale, 'cookies')}>{t.footer.cookies}</Link><PrivacySettingsButton label={t.footer.privacySettings} /><Link href={route.page(locale, 'legal')}>{t.legal.legalTitle}</Link><Link href={route.page(locale, 'terms')}>{t.footer.terms}</Link></div>
         <div className="footer-column"><h3>{t.footer.language}</h3><FooterLanguageLinks locale={locale}/></div>
       </div>
     </div>

@@ -432,8 +432,10 @@ body:has(.explore-shell) .site-footer { display: none; }
 .footer-brand p { color: var(--text-on-dark-muted); margin-top: var(--space-3); }
 .footer-columns { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-5); }
 .footer-column h3 { font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--yellow); margin-bottom: 1rem; }
-.footer-column a { display: flex; align-items: center; min-height: 44px; color: var(--text-on-dark); text-decoration: none; transition: color var(--transition-fast), transform var(--transition-fast); }
-.footer-column a:hover { color: var(--yellow); }
+.footer-column a, .footer-privacy-settings { display: flex; align-items: center; min-height: 44px; color: var(--text-on-dark); text-decoration: none; transition: color var(--transition-fast), transform var(--transition-fast); }
+.footer-column a:hover, .footer-privacy-settings:hover { color: var(--yellow); }
+.footer-privacy-settings { width: fit-content; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.footer-privacy-settings:focus-visible { outline-color: var(--yellow); }
 .footer-languages { display: grid; }
 .footer-languages a { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
 .footer-languages a[aria-current='page'] { color: var(--yellow); font-weight: 750; }
