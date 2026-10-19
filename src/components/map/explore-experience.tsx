@@ -150,6 +150,12 @@ export function ExploreExperience({ locale, city, places, initialPlaceId, initia
   }, [nearbyActive, userPosition])
 
   const handleNearMe = () => {
+    if (nearbyActive && userPosition) {
+      setProximityActive(true)
+      setMobileView('map')
+      setRecenterRequest((value) => value + 1)
+      return
+    }
     void requestLocation()
   }
 
@@ -167,7 +173,7 @@ export function ExploreExperience({ locale, city, places, initialPlaceId, initia
         {locationActive && <span className="sr-only" role="status">{t.map.locationActive}</span>}
         <div className="results-count"><span aria-live="polite" aria-atomic="true"><span className="mono">{filtered.length}</span> {filtered.length === 1 ? t.common.result : t.common.results}</span>{filtersActive && <button type="button" className="results-reset" onClick={reset}>{t.map.reset}</button>}</div>
       </div>
-      <div className="explore-list">{filtered.length ? <>{visiblePlaces.map((place, index) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} imagePreload={index === 0} distance={locationActive && userPosition && place.coordinates ? formatDistance(distanceInKm(userPosition, place.coordinates), locale) : undefined} />)}{visibleLimit < filtered.length && <button type="button" className="button button-light directory-more" onClick={showMore}>{t.common.showMore}</button>}</> : <EmptyState title={t.map.noPlaces} body={t.map.noPlacesHelp} action={<button type="button" className="button button-dark" onClick={reset}>{t.map.reset}</button>} />}</div>
+      <div className="explore-list"><h2 className="sr-only">{t.map.resultsNear}</h2>{filtered.length ? <>{visiblePlaces.map((place, index) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} imagePreload={index === 0} distance={locationActive && userPosition && place.coordinates ? formatDistance(distanceInKm(userPosition, place.coordinates), locale) : undefined} />)}{visibleLimit < filtered.length && <button type="button" className="button button-light directory-more" onClick={showMore}>{t.common.showMore}</button>}</> : <EmptyState title={t.map.noPlaces} body={t.map.noPlacesHelp} action={<button type="button" className="button button-dark" onClick={reset}>{t.map.reset}</button>} />}</div>
     </aside>
     <section className="map-panel" aria-label={t.map.title}>
       {mapError ? <div className="map-canvas"><div className="map-state"><Layers3 size={30} /><h3>{t.map.mapUnavailable}</h3><p>{t.map.mapUnavailableHelp}</p></div></div> : <MapCanvas locale={locale} places={mappablePlaces} center={city.coordinates} zoom={city.zoom} selectedId={validSelectedId} userPosition={userPosition} recenterRequest={recenterRequest} label={`${t.map.title}: ${city.name}`} onSelect={selectPlace} onError={() => setMapError(true)} />}
@@ -177,7 +183,7 @@ export function ExploreExperience({ locale, city, places, initialPlaceId, initia
     </section>
     <section className="mobile-list-view" aria-label={t.map.resultsNear} aria-hidden={mobileView === 'map'}>
       <div className="mobile-list-heading"><span aria-live="polite" aria-atomic="true">{nearbyCountLabel}</span><button type="button" className="button button-light button-small" onClick={() => setMobileView('map')}><MapIcon size={18} aria-hidden="true" /> {t.map.map}</button></div>
-      <div className="explore-list mobile-list-scroll" tabIndex={mobileView === 'list' ? 0 : -1} aria-label={nearbyCountLabel}>{mobileView === 'list' && (filtered.length ? <>{visiblePlaces.map((place, index) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} imagePreload={index === 0} distance={locationActive && userPosition && place.coordinates ? formatDistance(distanceInKm(userPosition, place.coordinates), locale) : undefined} />)}{visibleLimit < filtered.length && <button type="button" className="button button-light directory-more" onClick={showMore}>{t.common.showMore}</button>}</> : <EmptyState title={t.map.noPlaces} body={t.map.noPlacesHelp} action={<button type="button" className="button button-dark" onClick={reset}>{t.map.reset}</button>} />)}</div>
+      <div className="explore-list mobile-list-scroll" tabIndex={mobileView === 'list' ? 0 : -1} aria-label={nearbyCountLabel}><h2 className="sr-only">{t.map.resultsNear}</h2>{mobileView === 'list' && (filtered.length ? <>{visiblePlaces.map((place, index) => <PlaceCard key={place.id} place={place} locale={locale} showCity={false} imagePreload={index === 0} distance={locationActive && userPosition && place.coordinates ? formatDistance(distanceInKm(userPosition, place.coordinates), locale) : undefined} />)}{visibleLimit < filtered.length && <button type="button" className="button button-light directory-more" onClick={showMore}>{t.common.showMore}</button>}</> : <EmptyState title={t.map.noPlaces} body={t.map.noPlacesHelp} action={<button type="button" className="button button-dark" onClick={reset}>{t.map.reset}</button>} />)}</div>
     </section>
   </div></div>
 }

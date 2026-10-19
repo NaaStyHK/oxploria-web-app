@@ -24,6 +24,16 @@ const contentSecurityPolicyReportOnly = [
   "child-src blob:",
 ].join('; ')
 
+// These navigation restrictions are safe to enforce on prerendered pages.
+// Script restrictions remain report-only until the AdSense/CMP and Next.js
+// inline scripts can be covered without making every route dynamic.
+const contentSecurityPolicy = [
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+].join('; ')
+
 const nextConfig: NextConfig = {
   experimental: { globalNotFound: true },
   allowedDevOrigins: privateLanDevOrigins,
@@ -44,6 +54,7 @@ const nextConfig: NextConfig = {
         { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
         { key: 'X-Frame-Options', value: 'DENY' },
+        { key: 'Content-Security-Policy', value: contentSecurityPolicy },
         { key: 'Content-Security-Policy-Report-Only', value: contentSecurityPolicyReportOnly },
       ],
     }]

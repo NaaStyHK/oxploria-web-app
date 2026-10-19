@@ -589,6 +589,8 @@ test('footer privacy settings remains safe before the Google API is available', 
   await page.evaluate(() => { delete window.googlefc })
   await page.getByRole('button', { name: 'Privacy and cookie settings' }).click()
   expect(await page.evaluate(() => window.googlefc?.callbackQueue?.length)).toBe(1)
+  await expect(page.getByRole('status')).toHaveText('Opening privacy settings…')
+  await expect(page.getByRole('status')).toHaveText('The privacy panel is unavailable. Please try again later.', { timeout: 7_000 })
   expect(pageErrors).toEqual([])
 })
 
