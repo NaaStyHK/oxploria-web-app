@@ -267,6 +267,7 @@ p { max-width: 72ch; }
 .place-content-grid { display: grid; gap: 2rem; align-items: start; }
 .place-article { font-size: 1.06rem; }
 .place-article h2 { margin-top: 3.5rem; margin-bottom: 1rem; }
+.place-article > h2:first-of-type { margin-top: 0; }
 .place-sources-section { padding-bottom: var(--section-space); }
 .editorial-sources { display: grid; gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--line); }
 .editorial-sources-heading h2 { margin-bottom: .45rem; font-size: clamp(1.45rem, 3vw, 2rem); }
@@ -283,6 +284,7 @@ p { max-width: 72ch; }
 .info-list li { display: grid; grid-template-columns: 24px 1fr; gap: .75rem; padding-block: .85rem; border-bottom: 1px solid var(--line); }
 .info-list li:last-child { border-bottom: 0; }
 .info-list strong { display: block; font-size: .78rem; text-transform: uppercase; letter-spacing: .07em; margin-bottom: .15rem; }
+.info-list-provenance { color: var(--muted); font-size: .9rem; }
 .info-actions { display: grid; gap: .65rem; margin-top: 1rem; }
 .mini-map { height: 270px; overflow: hidden; border-radius: var(--radius); background: var(--map-surface); }
 

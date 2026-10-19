@@ -30,9 +30,9 @@ test('map, editorial filters, list view and a place detail', async ({ page }) =>
 
 test('place pages disclose localized editorial sources without mixing cities', async ({ page }) => {
   const barcelonaLocales = [
-    { directory: '/fr/barcelone/lieux', title: 'Sources et vérification', author: 'Rédaction : Oxploria' },
-    { directory: '/es/barcelona/lugares', title: 'Fuentes y verificación', author: 'Redacción: Oxploria' },
-    { directory: '/en/barcelona/places', title: 'Sources and verification', author: 'Written by: Oxploria' },
+    { directory: '/fr/barcelone/lieux', title: 'Sources et vérification', author: 'Rédaction : Oxploria', provenance: 'Activité ajoutée par Oxploria', removedHeading: 'L’histoire du lieu' },
+    { directory: '/es/barcelona/lugares', title: 'Fuentes y verificación', author: 'Redacción: Oxploria', provenance: 'Actividad añadida por Oxploria', removedHeading: 'La historia del lugar' },
+    { directory: '/en/barcelona/places', title: 'Sources and verification', author: 'Written by: Oxploria', provenance: 'Activity added by Oxploria', removedHeading: 'The story of this place' },
   ]
 
   for (const item of barcelonaLocales) {
@@ -40,6 +40,9 @@ test('place pages disclose localized editorial sources without mixing cities', a
     const href = await page.locator('a.place-card-link').first().getAttribute('href')
     expect(href).toBeTruthy()
     await page.goto(href!)
+    const practical = page.locator('.info-panel')
+    await expect(practical).toContainText(item.provenance)
+    await expect(page.getByRole('heading', { name: item.removedHeading })).toHaveCount(0)
     const sources = page.locator('.editorial-sources')
     await expect(sources.getByRole('heading', { name: item.title })).toBeVisible()
     await expect(sources).toContainText(item.author)
