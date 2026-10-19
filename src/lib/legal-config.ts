@@ -9,7 +9,7 @@ export const legalConfig = {
   publisherPhone: null,
   contactEmail: 'contact@oxploria.com',
   publicSiteUrl: 'https://www.oxploria.com',
-  lastUpdated: '2026-10-10',
+  lastUpdated: '2026-10-19',
   hostingProvider: {
     name: 'Vercel Inc.',
     address: '440 N Barranca Avenue #4133, Covina, CA 91723, United States',

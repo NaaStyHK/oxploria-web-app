@@ -15,6 +15,7 @@
     "test:sitemap": "node scripts/verify-sitemap.mjs"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "firebase": "^12.19.0",
     "lucide-react": "^0.468.0",
     "maplibre-gl": "6.12.0",

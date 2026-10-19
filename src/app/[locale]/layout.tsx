@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import Script from 'next/script'
+import { Analytics } from '@vercel/analytics/next'
 import '../globals.css'
 import { Footer } from '@/components/footer'
 import { Header } from '@/components/header'
@@ -17,5 +18,5 @@ export default async function LocaleLayout({ children, params }: { children: Rea
   const { locale } = await params
   if (!isLocale(locale)) notFound()
   const t = getDictionary(locale)
-  return <html lang={locale} data-scroll-behavior="smooth"><head><link rel="preload" href="/fonts/geist.woff2" as="font" type="font/woff2" crossOrigin="anonymous" /><Script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4020415320847522" crossOrigin="anonymous" strategy="beforeInteractive" /></head><body><a className="skip-link" href="#main-content">{t.common.skipToContent}</a><LocaleDocument locale={locale}/><Header locale={locale} />{children}<Footer locale={locale} /></body></html>
+  return <html lang={locale} data-scroll-behavior="smooth"><head><link rel="preload" href="/fonts/geist.woff2" as="font" type="font/woff2" crossOrigin="anonymous" /><Script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4020415320847522" crossOrigin="anonymous" strategy="beforeInteractive" /></head><body><a className="skip-link" href="#main-content">{t.common.skipToContent}</a><LocaleDocument locale={locale}/><Header locale={locale} />{children}<Footer locale={locale} /><Analytics /></body></html>
 }

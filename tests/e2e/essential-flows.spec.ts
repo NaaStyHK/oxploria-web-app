@@ -557,7 +557,7 @@ for (const legalPage of [
   test(`${legalPage.locale} ${legalPage.path.split('/').at(-1)} explains AdSense consent and exposes privacy settings`, async ({ page }) => {
     await page.goto(legalPage.path)
     await expect(page.locator('main h1')).toHaveText(legalPage.title)
-    await expect(page.locator('.legal-updated')).toContainText('14')
+    await expect(page.locator('.legal-updated')).toContainText('19')
     await expect(page.locator('main')).toContainText('Google AdSense')
     await expect(page.locator('.legal-related a')).toHaveCount(3)
     await expect(page.getByRole('button', { name: legalPage.settings })).toBeVisible()
