@@ -7,7 +7,7 @@ import { GuideCard } from '@/components/guide-card'
 import { PlacesDirectory } from '@/components/places-directory'
 import { cityRecords } from '@/lib/data/mock-data'
 import { mockRepository } from '@/lib/data/mock-repository'
-import { firebasePlaceRepository } from '@/lib/data/firebase-place-repository'
+import { firebasePlaceRepository, listFreshPlaceSummaries } from '@/lib/data/firebase-place-repository'
 import { resolveGuidePlaceIds } from '@/lib/data/guide-place-resolution'
 import { getKnownPlaceCategory } from '@/lib/place-taxonomy'
 import { getDictionary } from '@/lib/i18n/dictionaries'
@@ -59,7 +59,7 @@ export default async function CitySectionPage({ params, searchParams }: Props) {
   if (section === segments.map[value]) {
     const query = await searchParams
     const guide = query.guide ? mockRepository.listGuides(value, city.id).find((item) => item.id === query.guide) : null
-    const cityPlaces = await firebasePlaceRepository.listPlaceSummaries(value, city.id)
+    const cityPlaces = await listFreshPlaceSummaries(value, city.id)
     const guidePlaceIds = guide ? resolveGuidePlaceIds(guide, cityPlaces) : []
     const initialPlaceId = query.place ?? guidePlaceIds[0]
     const mapPlaces = guide ? cityPlaces.filter((place) => guidePlaceIds.includes(place.id)) : cityPlaces

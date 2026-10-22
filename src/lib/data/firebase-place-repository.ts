@@ -13,6 +13,7 @@ import { documentIdFromPlaceSlug } from '@/lib/slug'
 export const cityCollections = { barcelona: 'Barcelona', 'la-rochelle': 'La-Rochelle' } as const
 export type PublicCityId = keyof typeof cityCollections
 export const PLACES_REVALIDATE_SECONDS = 3600
+export const CONTENT_REVALIDATE_SECONDS = 86400
 const FIRESTORE_TIMEOUT_MS = 15000
 const isPublicCityId = (value: string): value is PublicCityId => value in cityCollections
 
@@ -34,27 +35,38 @@ function plainValue(value: unknown): unknown {
   return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, plainValue(item)]))
 }
 
-const readCityDocuments = unstable_cache(async (cityId: PublicCityId): Promise<RawFirebasePlace[]> => {
+async function fetchCityDocuments(cityId: PublicCityId): Promise<RawFirebasePlace[]> {
   const operation = `collection read (${cityCollections[cityId]})`
   const snapshot = await withFirestoreRetry(operation, () => withTimeout(getDocsFromServer(collection(getFirebaseFirestore(), cityCollections[cityId])), operation))
   if (snapshot.empty) throw new Error(`Firestore collection ${cityCollections[cityId]} unexpectedly returned no public places.`)
   return snapshot.docs.map((item) => ({ ...(plainValue(item.data()) as DocumentData), id: item.id } as RawFirebasePlace))
-}, ['firebase-public-places-city-v1'], { revalidate: PLACES_REVALIDATE_SECONDS, tags: ['firebase-public-places'] })
+}
+
+const readCityDocuments = unstable_cache(fetchCityDocuments, ['firebase-public-places-city-content-v1'], { revalidate: CONTENT_REVALIDATE_SECONDS, tags: ['firebase-public-places'] })
+const readFreshCityDocuments = unstable_cache(fetchCityDocuments, ['firebase-public-places-city-fresh-v1'], { revalidate: PLACES_REVALIDATE_SECONDS, tags: ['firebase-public-places'] })
 
 const readPlaceDocument = unstable_cache(async (cityId: PublicCityId, id: string): Promise<RawFirebasePlace | null> => {
   const operation = `document read (${cityCollections[cityId]}/${id})`
   const snapshot = await withFirestoreRetry(operation, () => withTimeout(getDocFromServer(doc(getFirebaseFirestore(), cityCollections[cityId], id)), operation))
   return snapshot.exists() ? ({ ...(plainValue(snapshot.data()) as DocumentData), id: snapshot.id } as RawFirebasePlace) : null
-}, ['firebase-public-place-v1'], { revalidate: PLACES_REVALIDATE_SECONDS, tags: ['firebase-public-places'] })
+}, ['firebase-public-place-v2'], { revalidate: CONTENT_REVALIDATE_SECONDS, tags: ['firebase-public-places'] })
+
+async function listPlacesFrom(locale: Locale, cityId: string | undefined, readDocuments: typeof readCityDocuments): Promise<Place[]> {
+  const cityIds: PublicCityId[] = cityId ? (isPublicCityId(cityId) ? [cityId] : []) : ['barcelona', 'la-rochelle']
+  const groups = await Promise.all(cityIds.map(async (id) => (await readDocuments(id)).map((raw) => normalizeFirebasePlace(raw, locale, id)).filter((place): place is Place => Boolean(place))))
+  return groups.flat()
+}
 
 async function listPlaces(locale: Locale, cityId?: string): Promise<Place[]> {
-  const cityIds: PublicCityId[] = cityId ? (isPublicCityId(cityId) ? [cityId] : []) : ['barcelona', 'la-rochelle']
-  const groups = await Promise.all(cityIds.map(async (id) => (await readCityDocuments(id)).map((raw) => normalizeFirebasePlace(raw, locale, id)).filter((place): place is Place => Boolean(place))))
-  return groups.flat()
+  return listPlacesFrom(locale, cityId, readCityDocuments)
 }
 
 async function listPlaceSummaries(locale: Locale, cityId?: string): Promise<PlaceSummary[]> {
   return (await listPlaces(locale, cityId)).map(toPlaceSummary)
+}
+
+export async function listFreshPlaceSummaries(locale: Locale, cityId?: string): Promise<PlaceSummary[]> {
+  return (await listPlacesFrom(locale, cityId, readFreshCityDocuments)).map(toPlaceSummary)
 }
 
 async function getPlaceById(id: string, locale: Locale, cityId: string): Promise<Place | null> {

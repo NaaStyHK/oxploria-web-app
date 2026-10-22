@@ -12,7 +12,7 @@ import { CityNearby } from '@/components/city-nearby'
 import { FavouritesExperience } from '@/components/favourites-experience'
 import { cityRecords } from '@/lib/data/mock-data'
 import { getCityById, mockRepository } from '@/lib/data/mock-repository'
-import { firebasePlaceRepository } from '@/lib/data/firebase-place-repository'
+import { firebasePlaceRepository, listFreshPlaceSummaries } from '@/lib/data/firebase-place-repository'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import { isLocale, locales, type Locale } from '@/lib/i18n/config'
 import { route, segments } from '@/lib/routes'
@@ -75,8 +75,8 @@ export default async function CityPage({ params }: Props) {
       const guides = mockRepository.listGuides(value)
       return <main id="main-content" className="page-shell"><section className="page-hero"><div className="container"><h1>{t.guides.title}</h1><p>{t.guides.intro}</p></div></section><section className="section-tight"><div className="container"><div className="guide-grid">{guides.map((guide) => { const guideCity = getCityById(guide.cityId, value); return guideCity ? <GuideCard key={guide.id} guide={guide} city={guideCity} locale={value}/> : null })}</div></div></section></main>
     }
-    if (page === 'search') return <main id="main-content" className="page-shell"><section className="page-hero"><div className="container"><h1>{t.search.title}</h1><p>{t.search.description}</p></div></section><section className="section-tight"><div className="container"><SearchExperience locale={value} places={await firebasePlaceRepository.listPlaceSummaries(value)}/></div></section></main>
-    if (page === 'favourites') return <main id="main-content" className="page-shell"><section className="page-hero favourites-hero"><div className="container"><h1>{t.favourites.title}</h1><p>{t.favourites.description}</p></div></section><section className="section-tight favourites-section"><div className="container"><FavouritesExperience locale={value} places={await firebasePlaceRepository.listPlaceSummaries(value)}/></div></section></main>
+    if (page === 'search') return <main id="main-content" className="page-shell"><section className="page-hero"><div className="container"><h1>{t.search.title}</h1><p>{t.search.description}</p></div></section><section className="section-tight"><div className="container"><SearchExperience locale={value} places={await listFreshPlaceSummaries(value)}/></div></section></main>
+    if (page === 'favourites') return <main id="main-content" className="page-shell"><section className="page-hero favourites-hero"><div className="container"><h1>{t.favourites.title}</h1><p>{t.favourites.description}</p></div></section><section className="section-tight"><div className="container"><FavouritesExperience locale={value} places={await listFreshPlaceSummaries(value)}/></div></section></main>
     return <LegalPage locale={value} page={page}/>
   }
   const places = await firebasePlaceRepository.listPlaceSummaries(value, city.id)
