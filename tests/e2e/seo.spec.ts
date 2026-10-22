@@ -15,6 +15,31 @@ test('canonical, hreflang and x-default share the configured origin', async ({ p
   }
 })
 
+test('old place slugs resolve to current localized URLs while unknown places are not indexed', async ({ page, request }) => {
+  const oldPaths = [
+    '/es/la-rochelle/lugares/place-de-la-fourche--place_de_la_fourche',
+    '/en/barcelona/places/busto-de-francesc-carreras-i-candi--Busto-Francesc-Carreras-ciutadella',
+    '/fr/la-rochelle/lieux/parque-litoral-jean-duvignaud--parc_littoral_jean_duvignaud',
+  ]
+
+  for (const path of oldPaths) {
+    const response = await request.get(path, { maxRedirects: 0 })
+    expect(response.status(), path).toBe(200)
+    const html = await response.text()
+    const destination = html.match(/<meta id="__next-page-redirect" http-equiv="refresh" content="0;url=([^"]+)"/)?.[1]
+    expect(destination, path).toBeTruthy()
+    expect(destination, path).not.toBe(path)
+    const canonicalResponse = await request.get(destination!)
+    expect(canonicalResponse.status(), destination).toBe(200)
+    await page.goto(path)
+    await expect(page).toHaveURL(new RegExp(`${destination!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`))
+  }
+
+  await page.goto('/fr/barcelone/lieux/lieu-inexistant--document-absent')
+  await expect(page.locator('main h1')).toContainText('Ce lieu n’est pas sur notre carte.')
+  expect(await page.locator('meta[name="robots"][content*="noindex"]').count()).toBeGreaterThan(0)
+})
+
 test('apostrophes are HTML-escaped only in source and sitemap URLs match parsed canonicals', async ({ page, request }) => {
   test.setTimeout(120_000)
   const sitemap = await request.get('/sitemap.xml')

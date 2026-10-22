@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { BadgeCheck, Clock3, ExternalLink, Mail, MapPin, Phone, Route as RouteIcon, Ticket } from 'lucide-react'
-import { notFound, redirect } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { AdSlot } from '@/components/ad-slot'
 import { BookingCard } from '@/components/booking-card'
 import { Breadcrumbs } from '@/components/breadcrumbs'
@@ -26,7 +26,9 @@ import { mergePlaceCategories } from '@/lib/place-taxonomy'
 
 type Props = { params: Promise<{ locale: string; city: string; section: string; slug: string }> }
 
-export const dynamicParams = false
+// Keep prerendering known entities while allowing old place slugs to resolve
+// by their stable Firestore document ID and redirect to the current URL.
+export const dynamicParams = true
 
 function decodeRouteSlug(value: string): string | null {
   try { return decodeURIComponent(value) } catch { return null }
@@ -57,6 +59,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (section === segments.places[value]) {
     const place = await firebasePlaceRepository.getPlaceBySlug(decodedSlug, value, city.id)
     if (!place) return {}
+    if (place.slug !== decodedSlug) permanentRedirect(route.place(value, city.slug, place.slug))
     const localizedPlaces = await Promise.all(locales.map((locale) => firebasePlaceRepository.getPlaceById(place.id, locale, city.id)))
     const paths = Object.fromEntries(locales.map((locale, index) => [locale, route.place(locale, cityRecord.slug[locale], localizedPlaces[index]?.slug ?? place.slug)])) as Record<Locale, string>
     return localizedMetadata(value, paths, `${place.name} — ${city.name} | Oxploria`, place.description, place.images[0])
@@ -97,7 +100,7 @@ async function PlaceDetail({ locale, cityId, slug }: { locale: Locale; cityId: s
   const city = getCityById(cityId, locale)
   const place = await firebasePlaceRepository.getPlaceBySlug(slug, locale, cityId)
   if (!city || !place) notFound()
-  if (place.slug !== slug) redirect(route.place(locale, city.slug, place.slug))
+  if (place.slug !== slug) permanentRedirect(route.place(locale, city.slug, place.slug))
   const cityPlaces = await firebasePlaceRepository.listPlaceSummaries(locale, city.id)
   const nearby = place.coordinates ? cityPlaces.filter(hasCoordinates).filter((item) => item.id !== place.id).sort((a, b) => distanceInKm(place.coordinates!, a.coordinates) - distanceInKm(place.coordinates!, b.coordinates)).slice(0, 3) : []
   const guides = mockRepository.listGuides(locale, city.id).filter((guide) => resolveGuidePlaces(guide, cityPlaces).some((item) => item.id === place.id))
