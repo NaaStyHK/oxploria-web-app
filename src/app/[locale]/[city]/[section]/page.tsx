@@ -24,7 +24,7 @@ export function generateStaticParams() {
   return locales.flatMap((locale) => cityRecords.flatMap((city) => [segments.map[locale], segments.places[locale], segments.guides[locale]].map((section) => ({ locale, city: city.slug[locale], section }))))
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { locale: value, city: citySlug, section } = await params
   if (!isLocale(value)) return {}
   const city = mockRepository.getCityBySlug(citySlug, value)
@@ -33,7 +33,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const t = getDictionary(value)
   if (section === segments.map[value]) {
     const paths = Object.fromEntries(locales.map((locale) => [locale, route.map(locale, record.slug[locale])])) as Record<Locale, string>
-    return { ...localizedMetadata(value, paths, `${t.map.title} — ${city.name} | Oxploria`, t.metadata.mapDescription.replace('{city}', city.name)), robots: { index: false, follow: true } }
+    const query = await searchParams
+    return {
+      ...localizedMetadata(value, paths, `${t.map.title} — ${city.name} | Oxploria`, t.metadata.mapDescription.replace('{city}', city.name)),
+      ...(Object.keys(query).length > 0 ? { robots: { index: false, follow: true } } : {}),
+    }
   }
   if (section === segments.places[value]) {
     const paths = Object.fromEntries(locales.map((locale) => [locale, route.places(locale, record.slug[locale])])) as Record<Locale, string>

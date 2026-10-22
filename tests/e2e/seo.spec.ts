@@ -92,8 +92,22 @@ test('about metadata remains localized and indexable', async ({ page }) => {
   }
 })
 
-test('map, search and favorites are noindex while robots and sitemap stay public', async ({ page, request }) => {
-  for (const path of ['/fr/barcelone/carte', '/fr/recherche', '/fr/favoris', '/es/favoritos', '/en/favorites']) {
+test('base city maps are indexable, filtered maps are noindex, and sitemap includes only base maps', async ({ page, request }) => {
+  const mapPaths = [
+    '/fr/barcelone/carte', '/es/barcelona/mapa', '/en/barcelona/map',
+    '/fr/la-rochelle/carte', '/es/la-rochelle/mapa', '/en/la-rochelle/map',
+  ]
+  for (const path of mapPaths) {
+    await page.goto(path)
+    await expect(page.locator('meta[name="robots"][content*="noindex"]')).toHaveCount(0)
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `${productionOrigin}${path}`)
+  }
+  for (const path of ['/fr/barcelone/carte?category=architecture', '/fr/barcelone/carte?editorial=family', '/fr/barcelone/carte?place=example']) {
+    await page.goto(path)
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/i)
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `${productionOrigin}/fr/barcelone/carte`)
+  }
+  for (const path of ['/fr/recherche', '/fr/favoris', '/es/favoritos', '/en/favorites']) {
     await page.goto(path)
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/i)
   }
@@ -105,6 +119,8 @@ test('map, search and favorites are noindex while robots and sitemap stay public
   const sitemapText = await sitemap.text()
   expect(sitemapText).not.toContain(forbiddenSeoOrigin)
   expect(sitemapText).toContain(`${productionOrigin}/fr`)
+  for (const path of mapPaths) expect(sitemapText).toContain(`<loc>${productionOrigin}${path}</loc>`)
+  expect(sitemapText).not.toContain('<loc>https://www.oxploria.com/fr/barcelone/carte?')
   for (const path of [
     '/fr/barcelone/categories/architecture',
     '/es/barcelona/categorias/arquitectura',

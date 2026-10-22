@@ -18,6 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const places = await firebasePlaceRepository.listPlaceSummaries(locale, city.id)
       const categories = mergePlaceCategories(places.map((place) => place.category))
       pages.push({ path: route.city(locale, city.slug[locale]), priority: .9, changeFrequency: 'weekly' })
+      pages.push({ path: route.map(locale, city.slug[locale]), priority: .85, changeFrequency: 'weekly' })
       pages.push({ path: route.places(locale, city.slug[locale]), priority: .8, changeFrequency: 'weekly' })
       pages.push({ path: route.guides(locale, city.slug[locale]), priority: .75, changeFrequency: 'weekly' })
       for (const category of categories) pages.push({ path: route.category(locale, city.slug[locale], category.slug[locale]), priority: .65, changeFrequency: 'weekly' })

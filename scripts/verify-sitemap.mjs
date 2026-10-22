@@ -39,6 +39,13 @@ try {
   ]
   const missingArchitecture = requiredArchitecturePaths.filter((path) => !urls.includes(`${productionOrigin}${path}`))
   if (missingArchitecture.length) throw new Error(`Sitemap is missing permanent architecture pages: ${missingArchitecture.join(', ')}`)
+  const mapPaths = [
+    '/fr/barcelone/carte', '/es/barcelona/mapa', '/en/barcelona/map',
+    '/fr/la-rochelle/carte', '/es/la-rochelle/mapa', '/en/la-rochelle/map',
+  ]
+  const missingMaps = mapPaths.filter((path) => !urls.includes(`${productionOrigin}${path}`))
+  if (missingMaps.length) throw new Error(`Sitemap is missing city maps: ${missingMaps.join(', ')}`)
+  if (urls.some((url) => url.includes('?'))) throw new Error('Sitemap contains a query URL.')
   const excluded = urls.filter((url) => /\/(?:favoris|favoritos|favorites|recherche|buscar|search)(?:\/|$)/.test(url))
   if (excluded.length) throw new Error(`Sitemap contains noindex product pages: ${excluded.slice(0, 5).join(', ')}`)
   console.log(`Sitemap verified: ${urls.length} unique URLs on ${productionOrigin}.`)
