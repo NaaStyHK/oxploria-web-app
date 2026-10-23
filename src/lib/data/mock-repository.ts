@@ -20,7 +20,7 @@ function placeForLocale(id: string, locale: Locale): Place | null {
 function guideForLocale(id: string, locale: Locale): Guide | null {
   const record = guideRecords.find((guide) => guide.id === id)
   if (!record) return null
-  return { id: record.id, cityId: record.cityId, slug: record.slug[locale], title: record.title[locale], intro: record.intro[locale], image: record.image, readMinutes: record.readMinutes, sections: record.sections.map((section) => ({ title: section.title[locale], body: section.body[locale], placeIds: section.placeIds })), placeIds: record.placeIds }
+  return { id: record.id, cityId: record.cityId, slug: record.slug[locale], title: record.title[locale], intro: record.intro[locale], image: record.image, readMinutes: record.readMinutes, sections: record.sections.map((section) => ({ title: section.title[locale], body: section.body[locale], placeIds: section.placeIds })), placeIds: record.placeIds, practical: record.practical[locale], sources: record.sources.map((source) => ({ label: source.label[locale], href: source.href })) }
 }
 
 export const mockRepository: PlaceRepository = {

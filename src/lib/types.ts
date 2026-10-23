@@ -70,6 +70,8 @@ export interface GuideRecord {
   readMinutes: number
   sections: GuideSectionRecord[]
   placeIds: string[]
+  practical: Localized
+  sources: { label: Localized; href: string }[]
 }
 
 export interface City {
@@ -141,6 +143,8 @@ export interface Guide {
   readMinutes: number
   sections: GuideSection[]
   placeIds: string[]
+  practical: string
+  sources: { label: string; href: string }[]
 }
 
 export interface RawFirebasePlace {

@@ -300,6 +300,11 @@ p { max-width: 72ch; }
 .guide-body { display: grid; gap: 2rem; }
 .guide-section { padding-block: 2.5rem; border-bottom: 1px solid var(--line); }
 .guide-section h2 { font-size: clamp(2rem, 4.5vw, 3.5rem); max-width: 14ch; }
+.guide-section > p { max-width: 72ch; line-height: 1.75; }
+.guide-sources { padding-block: 2.5rem; }
+.guide-sources h2 { font-size: clamp(1.4rem, 2.2vw, 2rem); }
+.guide-sources ul { margin-top: 1rem; padding-left: 1.3rem; line-height: 1.8; }
+.guide-sources a { text-underline-offset: .2em; }
 
 .search-shell { min-height: 66svh; }
 .search-form { position: relative; max-width: 780px; }
